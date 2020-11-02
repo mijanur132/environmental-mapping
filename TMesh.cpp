@@ -776,7 +776,7 @@ void TMesh::RenderFilledEnv(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
 
 }
 
-void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard) {
+void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard, texture* t1) {
 
 #if 0
 	project three vertices of the triangle camera plane
@@ -815,6 +815,8 @@ void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard) {
 		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
 		V3 zLE = ssim * zv;
 
+		//V3 texS(textureSTpair[vinds[0]][0], textureSTpair[vinds[1]][0], textureSTpair[vinds[2]][0]);
+		//V3 texT(textureSTpair[vinds[0]][1], textureSTpair[vinds[1]][1], textureSTpair[vinds[2]][1]);
 
 		M33 nm;
 		nm.SetColumn(0, normals[vinds[0]]);
@@ -847,8 +849,16 @@ void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard) {
 				V3 reflectedRay = inRay.reflection(currNormal);
 				unsigned int colorenv;
 				V3 uvw(0, 0, 0);
-				if (billboard->map4mRay(reflectedRay, unprojectCurrP,uvw)) {
-					colorenv = 0;
+				if (billboard->map4mRay(reflectedRay, unprojectCurrP,uvw, t1,colorenv)) {
+					//float currS = (uvw.xyz[2] * textureSTpair[vinds[0]][0] + uvw.xyz[0] * textureSTpair[vinds[1]][0] + uvw.xyz[1] * textureSTpair[vinds[2]][0]) * t1->w;
+					//float currT = (uvw.xyz[2] * textureSTpair[vinds[0]][1] + uvw.xyz[0] * textureSTpair[vinds[1]][1] + uvw.xyz[1] * textureSTpair[vinds[2]][1]) * t1->h;
+
+					//colorenv = 0;
+					V3 colorVec(0, 0, 0);
+					colorVec.SetFromColor(colorenv);
+					//cout << colorVec << endl;
+					if (colorVec[0] < 0.10 && colorVec[1] < 0.10 && colorVec[2] < 0.10)
+						continue;
 					fb->Set(u, v, colorenv);
 				}		
 
@@ -862,7 +872,9 @@ void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard) {
 
 }
 
-int TMesh::map4mRay(V3 dir, V3 currP, V3& uvw)
+
+
+int TMesh::map4mRay(V3 dir, V3 currP, V3& uvw, texture* t1, unsigned int &color)
 {
 	int ret = 0;
 	for (int tri = 0; tri < trisN; tri++) 	{
@@ -909,7 +921,7 @@ int TMesh::map4mRay(V3 dir, V3 currP, V3& uvw)
 		// Step 2: inside-outside test
 		V3 C; // vector perpendicular to triangle's plane 
 		
-		GetBarryCentric(v0, v1, v2, P, uvw);
+		
 		//cout << uvw << endl;
 		// edge 0
 		V3 edge0 = v1 - v0;
@@ -931,8 +943,18 @@ int TMesh::map4mRay(V3 dir, V3 currP, V3& uvw)
 		C = edge2^(vp2);
 		if (N*(C) < 0) 
 			continue; // P is on the right side; 
-		ret = 1;
-				
+		
+		GetBarryCentric(v0, v1, v2, P, uvw);
+		if ((uvw[0] >= 0 && uvw[1] >= 0 && uvw[2] >= 0)|| (uvw[0] <= 0 && uvw[1] <= 0 && uvw[2]<=0))
+		{
+			ret = 1;
+			int currS = (uvw.xyz[2] * textureSTpair[vinds[0]][0] + uvw.xyz[0] * textureSTpair[vinds[1]][0] + uvw.xyz[1] * textureSTpair[vinds[2]][0]) * t1->w;
+			int currT = (uvw.xyz[2] * textureSTpair[vinds[0]][1] + uvw.xyz[0] * textureSTpair[vinds[1]][1] + uvw.xyz[1] * textureSTpair[vinds[2]][1]) * t1->h;
+
+			//V3 temp = v0 * uvw[2] + v1 * uvw[0] + v2 * uvw[1];
+			int colorI = t1->getPixelIndex(currS, currT);
+			color = t1->pix[colorI];
+		}
 	}
 	
 	//V3 temp=v0
@@ -1634,5 +1656,6 @@ void TMesh::scale(int m)
 void TMesh::BillboardProjection(FrameBuffer* fb, PPC* ppc) {
 
 	RenderFilled(fb, ppc);
+
 
 }

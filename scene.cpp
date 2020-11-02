@@ -46,7 +46,7 @@ Scene::Scene()
 	fbEnv = new FrameBuffer(u0 + w + 30, v0, w, h, 0);
 	fbEnv->label("fb Env view");
 	
-	int billBoardL = 50;
+	int billBoardL = 250;
 	fbBB = new FrameBuffer(0, 0, billBoardL, billBoardL, 0);
 	fbBB->label("billboard");
 	fbBB->show();
@@ -63,7 +63,7 @@ Scene::Scene()
 	tmeshesN = 3;
 	tmeshes = new TMesh[tmeshesN];
 
-	V3 cc0(50.0f, 0.0f, -100.0f);
+	V3 cc0(0.0f, 100.0f, -200.0f);
 
 	tmeshes[0].LoadBin("geometry/teapot1k.bin");
 
@@ -108,13 +108,21 @@ Scene::Scene()
 	V3 ppcBBPos = tmeshes[1].GetCenter();
 	V3 ppcBBDirection = tmeshes[0].GetCenter();
 	
-	ppcBB = new PPC(hfov, billBoardL, billBoardL);
+	ppcBB = new PPC(hfov*0.6, billBoardL, billBoardL);
 	ppcBB->SetPose(ppcBBPos, ppcBBDirection, V3(0, 1, 0));
-	tmeshes[2].DrawPlanerRect(ppcBB->C +ppcBBDirection*0.5,ppcBB->w,ppcBB->h);
-	tmeshes[2].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), -90);
+	tmeshes[2].DrawPlanerRect(tmeshes[0].GetCenter(),ppcBB->w,ppcBB->h);
+	
+	//tmeshes[2].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), -90);
 	//tmeshes[2].Rotate(tmeshes[1].GetCenter(), V3(0, 1, 0), -90);
 	tmeshes[2].onFlag = 1;
-	
+
+#if 0
+	tmeshes[2].DrawPlanerRect(tmeshes[1].GetCenter(), ppcBB->w, ppcBB->h);
+	V3 uvw(0, 0, 0);
+	cout<<tmeshes[2].map4mRay(V3(0, 0, -1), V3(0, 0, 0), uvw)<<endl;
+	cout << uvw << endl;
+
+#endif
 
 #if 0
 	our lightsource.
@@ -123,7 +131,7 @@ Scene::Scene()
 	L = V3(0.0f, 0.0f, 0.0f);  //*********************************************center of light camera
 	float hfov1 = 90.0f;
 	LightSrcPPC = new PPC(hfov1, fb1->w, fb1->h);
-	//LightSrcPPC->SetPose(L, tmeshes[1].GetCenter(), V3(0, 1, 0));
+	LightSrcPPC->SetPose(L, tmeshes[1].GetCenter(), V3(0, 1, 0));
 	ka = 0.2f;
 
 
@@ -224,7 +232,8 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm1) {
 		{
 		if (tmeshes[tmi].onBB)
 			{
-				tmeshes[tmi].BillboardProjection(fbBB, ppcBB);				
+				tmeshes[tmi].BillboardProjection(fbBB, ppcBB);	
+				//fbBB->upsideDown();
 				
 			}
 		}
@@ -251,8 +260,8 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm1) {
 			tmeshes[tmi].RenderFilledEnv(rfb, rppc, cm1);
 
 		}
-		rfb->ClearZB();
-		tmeshes[1].RenderFilledBB(rfb, rppc, &tmeshes[2]);
+		//rfb->ClearZB();
+		tmeshes[1].RenderFilledBB(rfb, rppc, &tmeshes[2], t1);
 
 		V3 col1 = V3(1, 0, 0);
 		rfb->Draw3DPoint(LightSrcPPC->C, rppc, col1.GetColor(), 10);

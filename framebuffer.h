@@ -39,5 +39,6 @@ public:
 	void showTextureImageAsUploaded(texture* t1);
 	void copyPix(unsigned int* pix, unsigned int* pix1);
 	void copy2tex(texture* t1);
+	void upsideDown();
 	
 };

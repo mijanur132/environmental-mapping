@@ -37,8 +37,8 @@ public:
 	void RenderFilled(FrameBuffer* fb, PPC* ppc);
 	void RenderFilledonBB(FrameBuffer* fb, PPC* ppc);
 	void RenderFilledEnv(FrameBuffer* fb, PPC* ppc, cubemap* cm1);
-	void RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* t1);  //t1 is the billbord bb object to be reflected onto fb
-	BOOL TMesh::map4mRay(V3 reflecRay, V3 currP, V3 &uvw);
+	void RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* t1, texture* tex1);  //t1 is the billbord bb object to be reflected onto fb
+	BOOL TMesh::map4mRay(V3 reflecRay, V3 currP, V3 &uvw, texture* tex1, unsigned int &color);
 	V3 SetEEQ(V3 v0, V3 v1, V3 v2);
 	M33 SetEEQs(V3 pv0, V3 pv1, V3 pv2);
 	M33 SetSSIM(V3 pv0, V3 pv1, V3 pv2);

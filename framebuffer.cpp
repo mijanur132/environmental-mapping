@@ -66,6 +66,28 @@ void FrameBuffer::copyPix(unsigned int* pix, unsigned int* pix1) {
 	
 }
 
+void FrameBuffer::upsideDown()
+{/*
+	copyPix(pix, pix1);
+	for (int uv = 0; uv < w * h; uv++)
+	{
+		pix[uv] = 0;
+	}*/
+
+	for (int v = 0; v < h; v++)
+	{
+		for (int u = 0; u < w; u++)
+		{
+			int pixI = v * w + u;
+			int pix1I = (h - 1 - v) * w + u;
+			pix1[pix1I]=pix[pixI];
+		}
+
+	}
+
+	copyPix(pix1, pix);
+}
+
 void FrameBuffer::draw() {
 
 	glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
