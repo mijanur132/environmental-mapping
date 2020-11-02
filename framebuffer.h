@@ -3,7 +3,6 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Gl_Window.H>
 #include <GL/glut.h>
-
 #include "ppc.h"
 #include"texture.h"
 
@@ -39,5 +38,6 @@ public:
 	void Draw3DPoint(V3 P, PPC *ppc, unsigned int color, int psize);
 	void showTextureImageAsUploaded(texture* t1);
 	void copyPix(unsigned int* pix, unsigned int* pix1);
+	void copy2tex(texture* t1);
 	
 };

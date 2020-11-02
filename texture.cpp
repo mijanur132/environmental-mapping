@@ -8,6 +8,9 @@
 
 
 // load ************************************a tiff image to pixel buffer
+
+
+
 void texture::LoadTiff(char* fname) {
 	TIFF* in = TIFFOpen(fname, "r");
 	if (in == NULL) {
@@ -61,3 +64,16 @@ void texture::init()
 		pix[uv] = C.GetColor();	
 
 }
+
+
+void texture::init(int _w, int _h)
+{
+	w = _w;
+	h = _h;
+	pix = new unsigned int[w * h];
+	V3 C = V3(0, 0, 1);
+	for (int uv = 0; uv < w * h; uv++)
+		pix[uv] = 0;
+
+}
+

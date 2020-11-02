@@ -17,5 +17,6 @@ public:
 	void cmface2fb(FrameBuffer* fb, int faceI);
 	matrix envmap(PPC* viewCam);
 	unsigned int envmap4mRay(V3 rayVec);
+	unsigned int bilinearinterpolation(FrameBuffer* t1, matrix f1, float uf, float vf);
 };
 

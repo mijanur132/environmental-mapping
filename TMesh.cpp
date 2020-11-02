@@ -384,6 +384,70 @@ void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc) {
 
 }
 
+void TMesh::RenderFilledonBB(FrameBuffer* fb, PPC* ppc) {  //this fb->pix is the billboard, it will be copied to the tmesh callilng it. Camera is 
+
+	V3* pverts = new V3[vertsN];
+	for (int vi = 0; vi < vertsN; vi++) {
+		if (!ppc->Project(verts[vi], pverts[vi]))
+			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
+	}
+
+	//trisN = 2; //temp just to check one face of the cube for hw3 other wise delte this line.
+
+	for (int tri = 0; tri < trisN; tri++) {
+		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+		if (
+			pverts[vinds[0]][0] == FLT_MAX ||
+			pverts[vinds[1]][0] == FLT_MAX ||
+			pverts[vinds[2]][0] == FLT_MAX
+			)
+			continue;
+
+		AABB aabb(pverts[vinds[0]]);
+		aabb.AddPoint(pverts[vinds[1]]);
+		aabb.AddPoint(pverts[vinds[2]]);
+		// clipping
+		if (!aabb.clipwithframe(fb->w, fb->h))
+			continue;
+
+		int left = (int)(aabb.corners[0][0] + .5f);
+		int right = (int)(aabb.corners[1][0] - .5f);
+		int top = (int)(aabb.corners[0][1] + .5f);
+		int bottom = (int)(aabb.corners[1][1] - .5f);
+
+		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
+		V3 zLE = ssim * zv;
+		M33 cm;
+		cm.SetColumn(0, colors[vinds[0]]);
+		cm.SetColumn(1, colors[vinds[1]]);
+		cm.SetColumn(2, colors[vinds[2]]);
+		M33 cLEm;
+		cLEm[0] = ssim * cm[0];
+		cLEm[1] = ssim * cm[1];
+		cLEm[2] = ssim * cm[2];
+		for (int v = top; v <= bottom; v++) {
+			for (int u = left; u <= right; u++) {
+				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
+				V3 sid = eeqsm * currPix;
+				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
+					continue; // outside of triangle
+				float currz = zLE * currPix;
+				if (fb->Farther(u, v, currz))
+					continue; // hidden
+				V3 currColor = cLEm * currPix;
+				fb->Set(u, v, currColor.GetColor());
+			}
+		}
+
+	}
+
+	delete[]pverts;
+
+}
+
+
 
 
 
@@ -712,7 +776,169 @@ void TMesh::RenderFilledEnv(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
 
 }
 
+void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard) {
 
+#if 0
+	project three vertices of the triangle camera plane
+		check boundary
+#endif
+
+		V3* pverts = new V3[vertsN];
+	for (int vi = 0; vi < vertsN; vi++) {
+		if (!ppc->Project(verts[vi], pverts[vi]))
+			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
+	}
+
+	for (int tri = 0; tri < trisN; tri++) {
+		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+		if (
+			pverts[vinds[0]][0] == FLT_MAX ||
+			pverts[vinds[1]][0] == FLT_MAX ||
+			pverts[vinds[2]][0] == FLT_MAX
+			)
+			continue;
+
+		AABB aabb(pverts[vinds[0]]);
+		aabb.AddPoint(pverts[vinds[1]]);
+		aabb.AddPoint(pverts[vinds[2]]);
+		// clipping
+		if (!aabb.clipwithframe(fb->w, fb->h))
+			continue;
+
+		int left = (int)(aabb.corners[0][0] + .5f);
+		int right = (int)(aabb.corners[1][0] - .5f);
+		int top = (int)(aabb.corners[0][1] + .5f);
+		int bottom = (int)(aabb.corners[1][1] - .5f);
+
+		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
+		V3 zLE = ssim * zv;
+
+
+		M33 nm;
+		nm.SetColumn(0, normals[vinds[0]]);
+		nm.SetColumn(1, normals[vinds[1]]);
+		nm.SetColumn(2, normals[vinds[2]]);
+		M33 nLEm;
+		nLEm[0] = ssim * nm[0];
+		nLEm[1] = ssim * nm[1];
+		nLEm[2] = ssim * nm[2];
+
+
+		for (int v = top; v <= bottom; v++) {
+			for (int u = left; u <= right; u++) {
+				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
+				V3 sid = eeqsm * currPix;
+				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
+					continue; // outside of triangle
+				float currz = zLE * currPix;
+
+				if (fb->Farther(u, v, currz))
+				{
+					continue;
+				}
+
+				// normal at current pixel
+				V3 currNormal = nLEm * currPix;
+				V3 currP = V3(u, v, currz);
+				V3 unprojectCurrP = ppc->UnProject(currP);
+				V3 inRay = unprojectCurrP - ppc->C;
+				V3 reflectedRay = inRay.reflection(currNormal);
+				unsigned int colorenv;
+				V3 uvw(0, 0, 0);
+				if (billboard->map4mRay(reflectedRay, unprojectCurrP,uvw)) {
+					colorenv = 0;
+					fb->Set(u, v, colorenv);
+				}		
+
+				
+			}
+		}
+
+	}
+
+	delete[]pverts;
+
+}
+
+int TMesh::map4mRay(V3 dir, V3 currP, V3& uvw)
+{
+	int ret = 0;
+	for (int tri = 0; tri < trisN; tri++) 	{
+		
+		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+
+		V3 orig = currP;
+		V3 v0 = verts[vinds[0]];
+		V3 v1 = verts[vinds[1]];
+		V3 v2 = verts[vinds[2]];
+		//cout << trisN << endl;
+		//cout << v0 << v1 << v2 << endl;
+
+			// compute plane's normal
+		V3 v0v1 = v1 - v0;
+		V3 v0v2 = v2 - v0;
+		// no need to normalize
+		V3 N = v0v1^(v0v2).Normalized(); // N 
+		N = N ;
+		//cout << "N "<<tri<<N << endl;
+		//cout << dir << endl;
+		// Step 1: finding P
+
+		// check if ray and plane are parallel ?
+		float NdotRayDirection = N*dir;
+		//cout << "Nparallel:" << NdotRayDirection << endl;
+		if (fabs(NdotRayDirection) < 0.001) // almost 0 
+			continue; // they are parallel so they don't intersect ! 
+
+		// compute d parameter using equation 2
+		float d = N*v0;
+
+		// compute t (equation 3)
+		float t = ((N*orig) + d) / NdotRayDirection;
+		//cout << "t" << t << endl;
+		// check if the triangle is in behind the ray
+		if (t < 0) 
+			continue; // the triangle is behind 
+
+		// compute the intersection point using equation 1
+		V3 P = orig + dir*t;
+
+		//cout << "p" <<P<< endl;
+		// Step 2: inside-outside test
+		V3 C; // vector perpendicular to triangle's plane 
+		
+		GetBarryCentric(v0, v1, v2, P, uvw);
+		//cout << uvw << endl;
+		// edge 0
+		V3 edge0 = v1 - v0;
+		V3 vp0 = P - v0;
+		C = edge0^vp0;
+		if (N*C < 0) 
+			continue; // P is on the right side 
+
+		// edge 1
+		V3 edge1 = v2 - v1;
+		V3 vp1 = P - v1;
+		C = edge1^vp1;
+		if (N*C < 0) 
+			continue; // P is on the right side 
+
+		// edge 2
+		V3 edge2 = v0 - v2;
+		V3 vp2 = P - v2;
+		C = edge2^(vp2);
+		if (N*(C) < 0) 
+			continue; // P is on the right side; 
+		ret = 1;
+				
+	}
+	
+	//V3 temp=v0
+	return ret;
+
+}
 
 void TMesh::RenderFilledWithShadow(FrameBuffer* fb, PPC* ppc, float* zbx, PPC* LightPPC, V3 C, V3 L, float ka) {
 	
@@ -1243,11 +1469,11 @@ void TMesh::RenderTexture(FrameBuffer* fb, PPC* ppc, texture* t1) {
 
 #endif
 				//unsigned int color_uvw = bilinearinterpolation(t1, currS, currT);
-				//unsigned int color_uvw = NonBilinearReginterpolation(t1, currS, currT);
+				unsigned int color_uvw = NonBilinearReginterpolation(t1, currS, currT);
 				if (fb->Farther(u, v, currz))
 					continue; // hidden
 
-				//fb->Set(u, v, color_uvw);
+				fb->Set(u, v, color_uvw);
 			}
 		}
 
@@ -1402,5 +1628,11 @@ void TMesh::scale(int m)
 		verts[vi] = verts[vi] * m;
 		cout << "vi" << vi << verts[vi] << endl;
 	}
+
+}
+
+void TMesh::BillboardProjection(FrameBuffer* fb, PPC* ppc) {
+
+	RenderFilled(fb, ppc);
 
 }

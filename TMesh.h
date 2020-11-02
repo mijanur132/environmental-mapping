@@ -10,6 +10,8 @@
 class TMesh {
 public:
 	int onFlag;
+	int onReflec=0;
+	int onBB = 0;
 	V3 *verts;
 	V3 *colors;
 	V3 *normals;
@@ -33,7 +35,10 @@ public:
 	//void RenderFilled(FrameBuffer *fb, PPC *ppc);
 	void RenderFilled(FrameBuffer* fb, PPC* ppc, V3 C, V3 L, float ka);
 	void RenderFilled(FrameBuffer* fb, PPC* ppc);
+	void RenderFilledonBB(FrameBuffer* fb, PPC* ppc);
 	void RenderFilledEnv(FrameBuffer* fb, PPC* ppc, cubemap* cm1);
+	void RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* t1);  //t1 is the billbord bb object to be reflected onto fb
+	BOOL TMesh::map4mRay(V3 reflecRay, V3 currP, V3 &uvw);
 	V3 SetEEQ(V3 v0, V3 v1, V3 v2);
 	M33 SetEEQs(V3 pv0, V3 pv1, V3 pv2);
 	M33 SetSSIM(V3 pv0, V3 pv1, V3 pv2);
@@ -55,5 +60,6 @@ public:
 	void RenderFilledWithShadow(FrameBuffer* fb, PPC* ppc, float* zb, PPC* LightPPC, V3 C, V3 L, float ka);
 	void RenderFilledProjector(FrameBuffer* fb0, FrameBuffer* fb1, PPC* ppc0, PPC* ppc1);
 	void scale(int m);
+	void TMesh::BillboardProjection(FrameBuffer* fb, PPC* ppc);
 
 };

@@ -343,3 +343,7 @@ void FrameBuffer::showTextureImageAsUploaded(texture* t1) {
 	}
 
 }
+
+void FrameBuffer::copy2tex(texture* t1) {
+	copyPix(pix, t1->pix);
+}

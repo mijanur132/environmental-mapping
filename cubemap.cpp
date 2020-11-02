@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "cubemap.h"
 #include"matrix.h"
+#include"framebuffer.h"
 
 cubemap::cubemap(int _w, int _h)
 {
@@ -91,8 +92,74 @@ void cubemap::cmface2fb(FrameBuffer* fb, int faceI) {
 
 }
 
+
+unsigned int cubemap::bilinearinterpolation(FrameBuffer* t1, matrix f1, float uf, float vf) //u->col
+{
+	V3 colorBilinear;
+
+	if (vf < (t1->h - 1.5) && vf> 0.5 && uf > 0.5 && uf < (t1->w - 1.5))
+	{
+		float u0 = (uf - 0.5f);
+		float v0 = (vf - 0.5f);
+		int u0f = floor(u0);
+		int v0f = floor(v0);
+
+		float dx = u0 - u0f;
+		float dy = v0 - v0f;
+
+		V3 c0, c1, c2, c3;
+		int i0, i1, i2, i3;
+		float a0, a1, a2, a3;
+		
+
+		//i0 = t1->getPixelIndex(u0f, v0f);  //cl,rw
+		//i1 = t1->getPixelIndex(u0f + 1, v0f);
+		//i2 = t1->getPixelIndex(u0f + 1, v0f + 1);
+		//i3 = t1->getPixelIndex(u0f, v0f + 1);
+		//cout << "u0f, v0f, i0, i1, i2, i3:" << u0f<<" " << v0f<<" " << i0 <<" "<< i1 <<" "<<i2<<" "<<i3<< endl;
+		c0.SetFromColor(f1.imageVec[v0f][u0f]);  //imagevec->row, col
+		c1.SetFromColor(f1.imageVec[v0f][u0f+1]);
+		c2.SetFromColor(f1.imageVec[v0f+1][u0f+1]);
+		c3.SetFromColor(f1.imageVec[v0f+1][u0f]);
+		//c1.SetFromColor(t1->pix[i1]);
+		//c2.SetFromColor(t1->pix[i2]);
+		//c3.SetFromColor(t1->pix[i3]);
+		//cout << c0<<" " << c1<<" " << c2<<" " << c3 << endl;
+
+		a0 = (1 - dx) * (1 - dy);
+		a1 = dx * (1 - dy);
+		a2 = dx * dy;
+		a3 = (1 - dx) * dy;
+		//a0 = a1 = a2 = a3 = 1;
+		//cout << a0 << " " << a1<<"  "<<a2<<" "<<a3<<endl;
+		for (int i = 0; i < 3; i++)
+		{
+			colorBilinear[i] = (a0 * c0[i] + a2 * c2[i] + a1 * c1[i] + a3 * c3[i]);
+
+		}
+
+		return colorBilinear.GetColor();
+
+	}
+	else
+	{
+		
+		if (vf < (t1->h) && vf>= 0 && uf >= 0 && uf < (t1->w))
+		{
+			
+			return f1.imageVec[vf][uf];
+			
+		}
+		
+		
+
+	}
+
+}
+
 matrix cubemap::envmap(PPC* viewCam) {
 	matrix temp(viewCam->w, viewCam->h);
+	FrameBuffer* fbtemp = new FrameBuffer(0, 0, w/3, h/4, 0);
 	
 	for (int ih = 0; ih < viewCam->h; ih++)
 	{
@@ -100,45 +167,51 @@ matrix cubemap::envmap(PPC* viewCam) {
 		{
 			V3 rayVec=viewCam->GetRayVector(iw, ih);
 			V3 pp = cam0->lookAtRayVecDir(rayVec);	
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < faceh && pp[1] < facel)
+			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel&& pp[1] < faceh)  //pp0-x,pp1-y
 			{
+				//temp.imageVec[ih][iw]=bilinearinterpolation(fbtemp, cubefaces[0], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[0].imageVec[pp[1]][pp[0]];
 				continue;
 			}
 					
 			
 			pp = cam1->lookAtRayVecDir(rayVec);
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < faceh && pp[1] < facel)
+			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
 			{
+				//temp.imageVec[ih][iw] = bilinearinterpolation(fbtemp, cubefaces[1], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[1].imageVec[pp[1]][pp[0]];
 				continue;
 			}
 
 			
 			pp = cam2->lookAtRayVecDir(rayVec);
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < faceh && pp[1] < facel)
+			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
 			{
+				//temp.imageVec[ih][iw] = bilinearinterpolation(fbtemp, cubefaces[2], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[2].imageVec[pp[1]][pp[0]];
 				continue;
 			}
 			
 			pp = cam3->lookAtRayVecDir(rayVec);
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < faceh && pp[1] < facel)
+			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
 			{
+				//temp.imageVec[ih][iw] = bilinearinterpolation(fbtemp, cubefaces[3], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[3].imageVec[pp[1]][pp[0]];
 				continue;
 			}
 			
 			pp = cam4->lookAtRayVecDir(rayVec);
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < faceh && pp[1] < facel)
+			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
 			{
+				//temp.imageVec[ih][iw] = bilinearinterpolation(fbtemp, cubefaces[4], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[4].imageVec[pp[1]][pp[0]];
 				continue;
 			}
 			
 			pp = cam5->lookAtRayVecDir(rayVec);
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < faceh && pp[1] < facel)
+			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
 			{
+				//temp.imageVec[ih][iw] = bilinearinterpolation(fbtemp, cubefaces[5], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[5].imageVec[pp[1]][pp[0]];				
 			}
 

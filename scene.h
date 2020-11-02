@@ -13,9 +13,10 @@ public:
 
 	GUI *gui;
 	FrameBuffer *fb;
+	FrameBuffer* fbBB;
 	FrameBuffer* fb0, *fb1, *fb3, *fb4, *fbEnv;
 	PPC* ppc, *ppc0,*ppc1, *LightSrcPPC, * LightSrcPPC1, * LightSrcPPC2, * LightSrcPPC3;
-	
+	PPC* ppcBB;
 	TMesh* tmeshes;
 	int tmeshesN;
 	int globalIndex4dbg = 0;

@@ -34,25 +34,28 @@ Scene::Scene()
 	int w = 800;
 
 	fb0 = new FrameBuffer(u0, v0, w, h, 0);
-	fb0->label("fb 0");
-	fb0->show();
+	fb0->label("0bject to be projected");
+	//fb0->show();
 	fb0->redraw();
 
-	fb1 = new FrameBuffer(u0 + w + 30, v0, w, h, 0);
-	fb1->label("fb 1");
+	fb1 = new FrameBuffer(u0 + 2*w + 30, v0, w, h, 0);
+	fb1->label("Main camera view");
 	fb1->show();
 	fb1->redraw();
 
 	fbEnv = new FrameBuffer(u0 + w + 30, v0, w, h, 0);
-	fbEnv->label("fb Env");
+	fbEnv->label("fb Env view");
 	
+	int billBoardL = 50;
+	fbBB = new FrameBuffer(0, 0, billBoardL, billBoardL, 0);
+	fbBB->label("billboard");
+	fbBB->show();
 
-	gui->uiw->position(u0, v0);
+	gui->uiw->position(u0 + 3 * w + 30, v0);
 
 	V3 col = V3(0, 0, 1.0f);
 	V3 col1 = V3(1.0f, 0, 0);
-
-
+		
 #if 0
 	prepare the tmesh objects of the scene
 #endif 
@@ -60,21 +63,24 @@ Scene::Scene()
 	tmeshesN = 3;
 	tmeshes = new TMesh[tmeshesN];
 
-	V3 cc0(0.0f, 0.0f, 0.0f);
+	V3 cc0(50.0f, 0.0f, -100.0f);
 
-	tmeshes[0].LoadBin("geometry/auditorium.bin");
-	//tmeshes[0].DrawPlanerRect(cc0, 100, col1.GetColor());	
-	tmeshes[0].Rotate(tmeshes[0].GetCenter(), V3(1, 0, 0), -90.0f);
-	tmeshes[0].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), 180.0f);
+	tmeshes[0].LoadBin("geometry/teapot1k.bin");
+
 	tmeshes[0].SetCenter(cc0);
 	tmeshes[0].onFlag = 0;
+	tmeshes[0].onReflec = 0;
+	tmeshes[0].onBB = 1;
+	tmeshes[0].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), -90);
 
-
-	tmeshes[1].LoadBin("geometry/teapot57K.bin");
+	tmeshes[1].LoadBin("geometry/teapot1K.bin");
 	//tmeshes[1].LoadBin("geometry/teapot57K.bin");
-	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -50.0f));  //***************************center of 1
+	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -100.0f));  //***************************center of 1
 	tmeshes[1].onFlag = 1;
-	//tmeshes[1].Rotate(tmeshes[1].GetCenter(), V3(1, 0, 0), -90);
+	tmeshes[1].onReflec = 1;
+	
+
+	
 
 #if 0
 	load tiff 360 degree image
@@ -97,6 +103,17 @@ Scene::Scene()
 	//ppc1->PanLeftRight(0.0f);
 	ppc1->PanLeftRight(5.0f);
 
+
+	//V3 pcBBPos = tmeshes[0].GetCenter() + (tmeshes[0].GetCenter()- tmeshes[1].GetCenter());
+	V3 ppcBBPos = tmeshes[1].GetCenter();
+	V3 ppcBBDirection = tmeshes[0].GetCenter();
+	
+	ppcBB = new PPC(hfov, billBoardL, billBoardL);
+	ppcBB->SetPose(ppcBBPos, ppcBBDirection, V3(0, 1, 0));
+	tmeshes[2].DrawPlanerRect(ppcBB->C +ppcBBDirection*0.5,ppcBB->w,ppcBB->h);
+	tmeshes[2].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), -90);
+	//tmeshes[2].Rotate(tmeshes[1].GetCenter(), V3(0, 1, 0), -90);
+	tmeshes[2].onFlag = 1;
 	
 
 #if 0
@@ -200,21 +217,48 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm1) {
 
 		}
 
-		for (int tmi = 0; tmi < tmeshesN; tmi++) {
+		t1 = new texture();
+		t1->init(ppcBB->w, ppcBB->w);
+
+		for (int tmi = 0; tmi < tmeshesN; tmi++)
+		{
+		if (tmeshes[tmi].onBB)
+			{
+				tmeshes[tmi].BillboardProjection(fbBB, ppcBB);				
+				
+			}
+		}
+		
+		fbBB->copy2tex(t1);
+		tmeshes[2].MapTextureCorners2TriangleVerts(0, 0);
+		tmeshes[2].MapTextureCorners2TriangleVerts(1, 1);
+		tmeshes[2].RenderTexture(rfb, rppc, t1);
+
+
+		for (int tmi = 0; tmi < tmeshesN-1; tmi++) 
+		{
 			if (!tmeshes[tmi].onFlag)
 				continue;
+		    if (!tmeshes[tmi].onReflec)
+			{
+				tmeshes[tmi].RenderFilled(rfb, rppc);
+				continue;
+			}
+
 
 			V3 C(1.0f, 0.0f, 0.0f);
 			tmeshes[tmi].Light(C, L, ka);
 			tmeshes[tmi].RenderFilledEnv(rfb, rppc, cm1);
 
 		}
-
+		rfb->ClearZB();
+		tmeshes[1].RenderFilledBB(rfb, rppc, &tmeshes[2]);
 
 		V3 col1 = V3(1, 0, 0);
 		rfb->Draw3DPoint(LightSrcPPC->C, rppc, col1.GetColor(), 10);
 
 		rfb->redraw();
+		fbBB->redraw();
 		Fl::check();
 
 	}
