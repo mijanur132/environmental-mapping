@@ -10,6 +10,7 @@ public:
 	V3 a, b, c, C;
 	int w, h;
 	PPC(float hfov, int _w, int _h);
+	PPC(float hfov,float vfov, int _w);
 	int Project(V3 P, V3 &p);
 	V3 UnProject(V3 p);
 	void TranslateRightLeft(float tstep);

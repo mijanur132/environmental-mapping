@@ -16,6 +16,8 @@ cubemap::cubemap(int _w, int _h)
 	cam3 = new PPC(hfov, w / 3, h / 4);
 	cam4 = new PPC(hfov, w / 3, h / 4);
 	cam5 = new PPC(hfov, w / 3, h / 4);
+
+
 	cam0->Tilt(90.0f);
 	cam4->Tilt(-90.0f);
 	cam1->PanLeftRight(90.0f);
@@ -76,7 +78,8 @@ void cubemap::printFaces()
 
 
 
-void cubemap::face2cubemap(matrix* temp,int startw, int starth, int faceI) {
+void cubemap::face2cubemap(matrix* temp,int startw, int starth, int faceI)
+{
 	
 	for (int ih = 0; ih < faceh; ih++)
 	{
@@ -101,11 +104,15 @@ cubemap::cubemap(FrameBuffer* fb)
 	cam3 = new PPC(hfov, w / 3, h / 4);
 	cam4 = new PPC(hfov, w / 3, h / 4);
 	cam5 = new PPC(hfov, w / 3, h / 4);
+
+
+
+
 	cam0->Tilt(90.0f);
 	cam4->Tilt(-90.0f);
 	cam1->PanLeftRight(90.0f);
 	cam3->PanLeftRight(-90.0f);
-	cam5->PanLeftRight(180.0f);
+	cam5->Tilt(180.0f);
 	matrix temp(w, h);
 	temp.fbPix2mat(fb);
 	int index = 0;
@@ -118,6 +125,7 @@ cubemap::cubemap(FrameBuffer* fb)
 			{
 				
 				matrix face = temp.split(4, 3, i, j);
+				/*
 				if (index2 == 5) {
 				
 					matrix reartemp(facel, faceh);
@@ -129,7 +137,7 @@ cubemap::cubemap(FrameBuffer* fb)
 					}
 
 				
-				}
+				} */
 				cubefaces.push_back(face);
 				
 				index2++;

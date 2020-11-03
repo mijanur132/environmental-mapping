@@ -80,10 +80,9 @@ Scene::Scene()
 	load tiff 360 degree image
 #endif
 
-		
-		//fbEnv->LoadTiff("uffizi_cross.tiff");
 		fbEnv->LoadTiff("CubemapGenerated.tiff");
-		
+		//fbEnv->LoadTiff("uffizi_cross.tiff");
+		fb0->LoadTiff("360_equirectangular_800_400.tiff");
 
 #if 0
 	prepare cameras
@@ -119,8 +118,8 @@ Scene::Scene()
 		//fb0->redraw();
 	fb1->redraw();
 
-
-	Renderenvmap();
+	//RenderERI2Conv();   //run to generate the ERI to conv view
+	Renderenvmap();  //run to general env mapping
 
 }
 
@@ -146,7 +145,7 @@ void Scene::Renderenvmap() {
 		V3 reflectedRay = incident.reflection(normal);
 		cout << "reflected ray:" << reflectedRay << endl;
 
-#if 1
+#if 1  //1 for run general environment mapping
 		cubemap cm1(fbEnv);
 		cm1.cmface2fb(fb0, globalIndex4dbg);
 
@@ -154,22 +153,118 @@ void Scene::Renderenvmap() {
 		currenvmap.mat2fbPix(fb1);
 
 #endif
-#if 0
+#if 0 //1 for create cubemap from faces
 		cubemap cmtemp(100, 100); // a dummy one to call cubemap functions
-		cubemap cm1 = cmtemp.create4m6Images("top.tiff","left.tiff","front.tiff","right.tiff","bottom.tiff","back.tiff"); //origianl cm
+		cubemap cm1 = cmtemp.create4m6Images("top.tiff", "left.tiff", "front.tiff", "right.tiff", "bottom.tiff", "back.tiff"); //origianl cm
 		cm1.printFaces();
 		//matrix currenvmap = cm1.envmap(ppc1);		
 		//cm1.cmface2fb(fb1, globalIndex4dbg);
 
 #endif
-
-
 		Render(fb1, ppc1, &cm1);
-
-		//fb0->redraw();
+		
 		fb1->redraw();
 		Fl::check();
+	}
+}
 
+void Scene::RenderERI2Conv() {
+	for (int i = 0; i < 6; i++)
+	{
+		//fb0->SetBGR(0xFFFFFFFF);
+		//fb1->SetBGR(0xFFFFFFFF);
+
+		matrix m0(fb0->w, fb0->h);
+		matrix m1(ppc1->w, ppc1->h);
+		m0.fbPix2mat(fb0);
+		m0.mat2fbPix(fb1);
+
+		fb0->redraw();
+		fb1->redraw();
+
+		cout << i << endl;
+
+		eri eri1(fb1->w, fb1->w/2);
+
+		char* fileName = "name";
+		PPC* temp;
+		int ImageW = 512;
+		if (i == 0)
+		{
+
+			ppc1 = new PPC(hfov, hfov, ImageW);
+			temp = ppc1;
+			temp->Tilt(90.0f);
+			fileName = "top.tiff";
+		}
+		if (i == 1)
+		{
+			ppc1 = new PPC(hfov,hfov,ImageW);
+			temp = ppc1;
+			temp->Tilt(-90.0f);
+			fileName = "bottom.tiff";
+		}
+
+		if (i == 6)
+		{
+			ppc1 = new PPC(hfov, ImageW, ImageW/2);
+			temp = ppc1;
+			temp->Tilt(67.5f);
+			fileName = "top2.tiff";
+		}
+		if (i == 7)
+		{
+			ppc1 = new PPC(hfov, ImageW, ImageW/2);
+			temp = ppc1;
+			temp->Tilt(-67.5f);
+			fileName = "bottom2.tiff";
+		}
+
+		if (i == 2)
+		{
+			ppc1 = new PPC(hfov, ImageW, ImageW);
+			temp = ppc1;
+			temp->PanLeftRight(90.0f);
+			fileName = "left.tiff";
+		}
+
+		if (i == 3)
+		{
+			ppc1 = new PPC(hfov, ImageW, ImageW);
+			temp = ppc1;
+
+			fileName = "front.tiff";
+		}
+		if (i == 4)
+		{
+			ppc1 = new PPC(hfov, ImageW, ImageW);
+			temp = ppc1;
+			temp->PanLeftRight(-90.0f);
+			fileName = "right.tiff";
+		}
+
+		if (i == 5)
+		{
+			ppc1 = new PPC(hfov, ImageW, ImageW);
+			temp = ppc1;
+			temp->Tilt(180.0f);
+			fileName = "back.tiff";
+		}
+
+
+
+
+		FrameBuffer* fberi = new FrameBuffer(0, 0, ImageW, ImageW, 0);
+		eri1.ERI2Conv(m0, m1, ppc1);
+
+		m1.mat2fbPix(fberi);
+		//m0.mat2fbPix(fb0);
+		//fb0->redraw();
+		fberi->redraw();
+		fberi->SaveAsTiff(fileName);
+		Fl::check();
+
+		//Sleep(5000);
 
 
 	}
@@ -262,6 +357,7 @@ void Scene::Rendercubemap() {
 
 }
 
+/*
 void Scene::Render() {
 	for (int i = 0; i < 1; i++)
 	{
@@ -293,7 +389,7 @@ void Scene::Render() {
 	}
 
 }
-
+*/
 void Scene::RenderProjector(FrameBuffer* fb0, FrameBuffer* fb1, PPC* ppc0, PPC* ppc1) {
 #if 0
 	Prepare two cameraand framebuffer : ppc0, fb0 for the projectorand ppc1, fb1 for the output camera

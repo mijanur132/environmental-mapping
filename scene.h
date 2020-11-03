@@ -27,7 +27,7 @@ public:
 	Scene();
 	void DBG();
 	void NewButton();
-	void Render();
+	void RenderERI2Conv();
 	void Rendercubemap();
 	void Renderenvmap();
 	void Render(FrameBuffer* rfb, PPC* rppc);

@@ -18,6 +18,19 @@ PPC::PPC(float hfov, int _w, int _h) {
 
 }
 
+PPC::PPC(float hfov, float vfov, int _w) : a(1.0f, 0.0f, 0.0f), b(0.0f, -1.0f, 0.0f),
+C(0.0f, 0.0f, 0.0f), w(_w) {
+
+	
+	float hfovr = hfov * 3.14159f / 180.0f;
+	float vfovr = vfov * 3.14159f / 180.0f;
+	h = tan(vfovr / 2) / tan(hfovr / 2) * w;
+	float f = -(float)w / (2.0f * tanf(hfovr / 2.0f));
+	c = V3(-(float)w / 2.0f, (float)h / 2.0f, f);
+
+
+}
+
 int PPC::Project(V3 P, V3 &p) {
 
 	M33 M;
