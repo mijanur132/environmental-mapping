@@ -17,7 +17,7 @@ using namespace std;
 #include <iostream>
 
 
-Scene::Scene() 
+Scene::Scene()
 {
 
 
@@ -28,75 +28,71 @@ Scene::Scene()
 	prepare frame buffers
 #endif 
 
-	int u0 = 20;
+		int u0 = 20;
 	int v0 = 100;
 	int h = 800;
 	int w = 800;
 
 	fb0 = new FrameBuffer(u0, v0, w, h, 0);
-	fb0->label("0bject to be projected");
+	fb0->label("fb 0");
 	//fb0->show();
 	fb0->redraw();
 
-	fb1 = new FrameBuffer(u0 + 2*w + 30, v0, w, h, 0);
-	fb1->label("Main camera view");
+	fb1 = new FrameBuffer(u0  + 30, v0, w, h, 0);
+	fb1->label("fb 1");
 	fb1->show();
 	fb1->redraw();
 
 	fbEnv = new FrameBuffer(u0 + w + 30, v0, w, h, 0);
-	fbEnv->label("fb Env view");
-	
-	int billBoardL = 250;
-	fbBB = new FrameBuffer(0, 0, billBoardL, billBoardL, 0);
-	fbBB->label("billboard");
-	fbBB->show();
+	fbEnv->label("fb Env");
 
-	gui->uiw->position(u0 + 3 * w + 30, v0);
+
+	gui->uiw->position(u0 +w + 30, v0-40);
 
 	V3 col = V3(0, 0, 1.0f);
 	V3 col1 = V3(1.0f, 0, 0);
-		
+
+
 #if 0
 	prepare the tmesh objects of the scene
 #endif 
 
-	tmeshesN = 3;
+		tmeshesN = 3;
 	tmeshes = new TMesh[tmeshesN];
 
-	V3 cc0(0.0f, 100.0f, -200.0f);
+	V3 cc0(0.0f, 0.0f, 0.0f);
 
-	tmeshes[0].LoadBin("geometry/teapot1k.bin");
-
+	tmeshes[0].LoadBin("geometry/auditorium.bin");
+	//tmeshes[0].DrawPlanerRect(cc0, 100, col1.GetColor());	
+	tmeshes[0].Rotate(tmeshes[0].GetCenter(), V3(1, 0, 0), -90.0f);
+	tmeshes[0].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), 180.0f);
 	tmeshes[0].SetCenter(cc0);
 	tmeshes[0].onFlag = 0;
-	tmeshes[0].onReflec = 0;
-	tmeshes[0].onBB = 1;
-	tmeshes[0].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), -90);
+
 
 	tmeshes[1].LoadBin("geometry/teapot1K.bin");
 	//tmeshes[1].LoadBin("geometry/teapot57K.bin");
-	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -100.0f));  //***************************center of 1
+	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -150.0f));  //***************************center of 1
 	tmeshes[1].onFlag = 1;
-	tmeshes[1].onReflec = 1;
-	
-
-	
+	//tmeshes[1].Rotate(tmeshes[1].GetCenter(), V3(1, 0, 0), -90);
 
 #if 0
 	load tiff 360 degree image
 #endif
+
 		
-	//fb0->LoadTiff("360_equirectangular_800_400.tiff");
-		fbEnv->LoadTiff("uffizi_cross.tiff");
+		//fbEnv->LoadTiff("uffizi_cross.tiff");
+		fbEnv->LoadTiff("CubemapGenerated.tiff");
+		
 
 #if 0
 	prepare cameras
 #endif 
 
-	float hfov = 90.0f;
-	ppc0 = new PPC(hfov, fb0->w, fb0->w/2);
+		float hfov = 90.0f;
+	ppc0 = new PPC(hfov, fb0->w, fb0->w / 2);
 	ppc1 = new PPC(hfov, fb1->w, fb1->w);
-	
+
 	//ppc0->SetPose(V3(0, 0, -5), V3(0, 0, -100), V3(0, 1, 0));
 	//float roll = 15.0f;
 	//ppc1->Roll(roll);
@@ -104,34 +100,15 @@ Scene::Scene()
 	ppc1->PanLeftRight(5.0f);
 
 
-	//V3 pcBBPos = tmeshes[0].GetCenter() + (tmeshes[0].GetCenter()- tmeshes[1].GetCenter());
-	V3 ppcBBPos = tmeshes[1].GetCenter();
-	V3 ppcBBDirection = tmeshes[0].GetCenter();
-	
-	ppcBB = new PPC(hfov*0.6, billBoardL, billBoardL);
-	ppcBB->SetPose(ppcBBPos, ppcBBDirection, V3(0, 1, 0));
-	tmeshes[2].DrawPlanerRect(tmeshes[0].GetCenter(),ppcBB->w,ppcBB->h);
-	
-	//tmeshes[2].Rotate(tmeshes[0].GetCenter(), V3(0, 1, 0), -90);
-	//tmeshes[2].Rotate(tmeshes[1].GetCenter(), V3(0, 1, 0), -90);
-	tmeshes[2].onFlag = 1;
-
-#if 0
-	tmeshes[2].DrawPlanerRect(tmeshes[1].GetCenter(), ppcBB->w, ppcBB->h);
-	V3 uvw(0, 0, 0);
-	cout<<tmeshes[2].map4mRay(V3(0, 0, -1), V3(0, 0, 0), uvw)<<endl;
-	cout << uvw << endl;
-
-#endif
 
 #if 0
 	our lightsource.
 #endif
 
-	L = V3(0.0f, 0.0f, 0.0f);  //*********************************************center of light camera
+		L = V3(0.0f, 0.0f, 0.0f);  //*********************************************center of light camera
 	float hfov1 = 90.0f;
 	LightSrcPPC = new PPC(hfov1, fb1->w, fb1->h);
-	LightSrcPPC->SetPose(L, tmeshes[1].GetCenter(), V3(0, 1, 0));
+	//LightSrcPPC->SetPose(L, tmeshes[1].GetCenter(), V3(0, 1, 0));
 	ka = 0.2f;
 
 
@@ -139,7 +116,7 @@ Scene::Scene()
 	our drawing or other rendering operation
 #endif
 
-	fb0->redraw();
+		//fb0->redraw();
 	fb1->redraw();
 
 
@@ -164,27 +141,36 @@ void Scene::Renderenvmap() {
 	//	V3 rayVec2=ppc1->lookAtRayVecDir(rayVec);
 		//cout << "origPoint:" << rayVec2 << endl;
 
-		V3 incident = V3(0, 0, 0)- V3(1, 0, 0);
-		V3 normal =V3 (0, 1, 0);
+		V3 incident = V3(0, 0, 0) - V3(1, 0, 0);
+		V3 normal = V3(0, 1, 0);
 		V3 reflectedRay = incident.reflection(normal);
-		cout <<"reflected ray:"<< reflectedRay << endl;
+		cout << "reflected ray:" << reflectedRay << endl;
 
-
+#if 1
 		cubemap cm1(fbEnv);
 		cm1.cmface2fb(fb0, globalIndex4dbg);
 
-		matrix currenvmap=cm1.envmap(ppc1);
+		matrix currenvmap = cm1.envmap(ppc1);
 		currenvmap.mat2fbPix(fb1);
 
-		
+#endif
+#if 0
+		cubemap cmtemp(100, 100); // a dummy one to call cubemap functions
+		cubemap cm1 = cmtemp.create4m6Images("top.tiff","left.tiff","front.tiff","right.tiff","bottom.tiff","back.tiff"); //origianl cm
+		cm1.printFaces();
+		//matrix currenvmap = cm1.envmap(ppc1);		
+		//cm1.cmface2fb(fb1, globalIndex4dbg);
+
+#endif
+
 
 		Render(fb1, ppc1, &cm1);
 
-		fb0->redraw();
+		//fb0->redraw();
 		fb1->redraw();
 		Fl::check();
 
-		
+
 
 	}
 
@@ -199,7 +185,7 @@ void Scene::DBG()
 	V3 lookatP = tmeshes[1].GetCenter();
 	V3 currC = ppc1->C;
 	V3 upv(0, 1, 0);
-	V3 newC=currC.RotatePoint(lookatP, upv, 20.0f);
+	V3 newC = currC.RotatePoint(lookatP, upv, 20.0f);
 	ppc1->SetPose(newC, lookatP, upv);
 	//ppc1->Pan(10.0f);
 	//ppc1->Tilt(-10.0f);
@@ -225,49 +211,21 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm1) {
 
 		}
 
-		t1 = new texture();
-		t1->init(ppcBB->w, ppcBB->w);
-
-		for (int tmi = 0; tmi < tmeshesN; tmi++)
-		{
-		if (tmeshes[tmi].onBB)
-			{
-				tmeshes[tmi].BillboardProjection(fbBB, ppcBB);	
-				//fbBB->upsideDown();
-				
-			}
-		}
-		
-		fbBB->copy2tex(t1);
-		tmeshes[2].MapTextureCorners2TriangleVerts(0, 0);
-		tmeshes[2].MapTextureCorners2TriangleVerts(1, 1);
-		tmeshes[2].RenderTexture(rfb, rppc, t1);
-
-
-		for (int tmi = 0; tmi < tmeshesN-1; tmi++) 
-		{
+		for (int tmi = 0; tmi < tmeshesN; tmi++) {
 			if (!tmeshes[tmi].onFlag)
 				continue;
-		    if (!tmeshes[tmi].onReflec)
-			{
-				tmeshes[tmi].RenderFilled(rfb, rppc);
-				continue;
-			}
-
 
 			V3 C(1.0f, 0.0f, 0.0f);
 			tmeshes[tmi].Light(C, L, ka);
 			tmeshes[tmi].RenderFilledEnv(rfb, rppc, cm1);
 
 		}
-		//rfb->ClearZB();
-		tmeshes[1].RenderFilledBB(rfb, rppc, &tmeshes[2], t1);
+
 
 		V3 col1 = V3(1, 0, 0);
 		rfb->Draw3DPoint(LightSrcPPC->C, rppc, col1.GetColor(), 10);
 
 		rfb->redraw();
-		fbBB->redraw();
 		Fl::check();
 
 	}
@@ -280,12 +238,12 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm1) {
 void Scene::Rendercubemap() {
 	for (int i = 0; i < 1; i++)
 	{
-		
+
 
 		matrix m0(fb0->w, fb0->h);
 		matrix m1(ppc1->w, ppc1->h);
 		m0.fbPix2mat(fb0);
-		
+
 
 		fb0->redraw();
 		fb1->redraw();
@@ -306,31 +264,31 @@ void Scene::Rendercubemap() {
 
 void Scene::Render() {
 	for (int i = 0; i < 1; i++)
-	{	
+	{
 		//fb0->SetBGR(0xFFFFFFFF);
 		//fb1->SetBGR(0xFFFFFFFF);
-		
+
 		matrix m0(fb0->w, fb0->h);
 		matrix m1(ppc1->w, ppc1->h);
 		m0.fbPix2mat(fb0);
 		m0.mat2fbPix(fb1);
-		
+
 		fb0->redraw();
 		fb1->redraw();
-		
+
 		cout << i << endl;
 
 		eri eri1(fb1->w, fb1->h);
 		eri1.ERI2Conv(m0, m1, ppc1);
-		
+
 		m1.mat2fbPix(fb1);
 		m0.mat2fbPix(fb0);
 		fb0->redraw();
 		fb1->redraw();
 		Fl::check();
 
-	//	ppc1->PanLeftRight(90.0f);
-		
+		//	ppc1->PanLeftRight(90.0f);
+
 
 	}
 
@@ -338,7 +296,7 @@ void Scene::Render() {
 
 void Scene::RenderProjector(FrameBuffer* fb0, FrameBuffer* fb1, PPC* ppc0, PPC* ppc1) {
 #if 0
-	Prepare two cameraand framebuffer: ppc0, fb0 for the projectorand ppc1, fb1 for the output camera
+	Prepare two cameraand framebuffer : ppc0, fb0 for the projectorand ppc1, fb1 for the output camera
 #endif
 
 		fb0->SetBGR(0xFFFFFFFF);
@@ -421,7 +379,7 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc) {
 			V3 C(1.0f, 0.0f, 0.0f);
 			tmeshes[tmi].Light(C, L, ka);
 			tmeshes[tmi].RenderFilledWithShadow(rfb, rppc, rfb->zbL1, LightSrcPPC, C, L, ka);
-					
+
 		}
 
 
@@ -433,7 +391,7 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc) {
 
 	}
 
-		
+
 
 }
 

@@ -18,5 +18,9 @@ public:
 	matrix envmap(PPC* viewCam);
 	unsigned int envmap4mRay(V3 rayVec);
 	unsigned int bilinearinterpolation(FrameBuffer* t1, matrix f1, float uf, float vf);
+	void loadTiff2Face(char* fname, int faceI);
+	void face2cubemap(matrix* temp, int w, int h, int faceI);
+	cubemap create4m6Images(char* top, char* left, char* front, char* right, char* bottom, char* back);
+	void printFaces();
 };
 

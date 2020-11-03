@@ -32,6 +32,62 @@ cubemap::cubemap(int _w, int _h)
 	
 }
 
+cubemap cubemap::create4m6Images(char* top, char* left, char* front, char* right, char* bottom, char* back)
+{
+	FrameBuffer* fb0 = new FrameBuffer(0, 0, 100, 100, 0);
+	fb0->LoadTiff(top);
+	int _w=fb0->w;
+	int _h =fb0->h;
+	w = _w* 3;
+	h = _h * 4;
+	cubemap cm(w, h);
+	cm.loadTiff2Face(top, 0);
+	cm.loadTiff2Face(left, 1);
+	cm.loadTiff2Face(front, 2);
+	cm.loadTiff2Face(right, 3);
+	cm.loadTiff2Face(bottom, 4);
+	cm.loadTiff2Face(back, 5);
+
+	return cm;
+}
+
+void cubemap::loadTiff2Face(char* fname, int faceI)
+{
+	FrameBuffer* fb0 = new FrameBuffer(0, 0, 100, 100, 0);
+	fb0->LoadTiff(fname);
+	matrix temp(fb0->w, fb0->h);
+	temp.fbPix2mat(fb0);
+	cubefaces[faceI].imageVec = temp.imageVec;
+}
+
+void cubemap::printFaces()
+{
+	matrix temp(w, h);
+	face2cubemap(&temp, w / 3, 0, 0);
+	face2cubemap(&temp, 0, h/4, 1);
+	face2cubemap(&temp, w/3, h / 4, 2);
+	face2cubemap(&temp, 2*w/3, h / 4, 3);
+	face2cubemap(&temp, w / 3, 2*h / 4, 4);
+	face2cubemap(&temp, w / 3, 3 * h / 4, 5);
+	FrameBuffer* fb0 = new FrameBuffer(0, 0, w, h, 0);
+	temp.mat2fbPix(fb0);
+	fb0->SaveAsTiff("CubemapGenerated.tiff");
+}
+
+
+
+void cubemap::face2cubemap(matrix* temp,int startw, int starth, int faceI) {
+	
+	for (int ih = 0; ih < faceh; ih++)
+	{
+		for (int iw = 0; iw < facel; iw++)
+		{
+			temp->imageVec[starth+ih][startw+iw] = cubefaces[faceI].imageVec[ih][iw];
+		}
+
+	}
+}
+
 cubemap::cubemap(FrameBuffer* fb)
 {
 	w = fb->w;
@@ -209,7 +265,7 @@ matrix cubemap::envmap(PPC* viewCam) {
 			}
 			
 			pp = cam5->lookAtRayVecDir(rayVec);
-			if (pp[0] > 0 && pp[1] > 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
+			if (pp[0] >= 0 && pp[1] >= 0 && pp[0] < facel && pp[1] < faceh)  //pp0-x,pp1-y
 			{
 				//temp.imageVec[ih][iw] = bilinearinterpolation(fbtemp, cubefaces[5], pp[0], pp[1]);
 				temp.imageVec[ih][iw] = cubefaces[5].imageVec[pp[1]][pp[0]];				
