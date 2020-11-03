@@ -72,7 +72,7 @@ Scene::Scene()
 
 	tmeshes[1].LoadBin("geometry/teapot1K.bin");
 	//tmeshes[1].LoadBin("geometry/teapot57K.bin");
-	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -150.0f));  //***************************center of 1
+	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -50.0f));  //***************************center of 1
 	tmeshes[1].onFlag = 1;
 	//tmeshes[1].Rotate(tmeshes[1].GetCenter(), V3(1, 0, 0), -90);
 
@@ -277,10 +277,17 @@ void Scene::DBG()
 	//Rendercubemap();
 	//globalIndex4dbg++;
 	Renderenvmap();
+	globalIndex2++;
+	if (globalIndex2 < 2)
+	{
+		//tmeshes[1].DistortSin(0);
+		//tmeshes[1].DistortSinV2();
+		tmeshes[1].DistortPoke();
+	}
 	V3 lookatP = tmeshes[1].GetCenter();
 	V3 currC = ppc1->C;
 	V3 upv(0, 1, 0);
-	V3 newC = currC.RotatePoint(lookatP, upv, 20.0f);
+	V3 newC = currC.RotatePoint(lookatP, upv, 36.0f);
 	ppc1->SetPose(newC, lookatP, upv);
 	//ppc1->Pan(10.0f);
 	//ppc1->Tilt(-10.0f);

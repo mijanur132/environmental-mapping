@@ -20,6 +20,7 @@ public:
 	TMesh* tmeshes;
 	int tmeshesN;
 	int globalIndex4dbg = 0;
+	int globalIndex2 = 0;
 	texture *t1, *t2, *t3, *t4, *t5;
 	//int texesN;
 	float vf;

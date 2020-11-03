@@ -31,6 +31,10 @@ public:
 	V3 GetCenter();
 	void SetCenter(V3 center);
 	void Translate(V3 tv);
+	void Distort(int axis);
+	void DistortSin(int axis);
+	void DistortSinV2();
+	void DistortPoke();
 	void Rotate(V3 aO, V3 aDir, float theta);
 	//void RenderFilled(FrameBuffer *fb, PPC *ppc);
 	void RenderFilled(FrameBuffer* fb, PPC* ppc, V3 C, V3 L, float ka);

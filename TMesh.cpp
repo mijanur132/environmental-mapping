@@ -303,6 +303,139 @@ void TMesh::Translate(V3 tv) {
 
 }
 
+void TMesh::Distort(int axis) {
+	int mul = 10;
+	for (int vi = 0; vi < vertsN; vi++) 
+	{
+		float dist =verts[vi][axis]-GetCenter()[axis] ;
+		float diff = 1 / (dist*dist+1);
+		if (axis==1)
+		{
+			if (dist > 0)
+			{
+				verts[vi] = verts[vi] + V3(0, mul * diff, 0);
+			}
+			else {
+				verts[vi] = verts[vi] + V3(0,-1* mul * diff, 0);
+			}
+		}
+		if (axis == 0)
+		{
+			if (dist > 0)
+			{
+				verts[vi] = verts[vi] + V3(mul * diff, 0, 0);
+			}
+			else {				
+					verts[vi] = verts[vi] + V3(-1*mul * diff, 0, 0);				
+			}
+		}
+			
+		
+		if (axis == 2)			
+		{
+			float dist = verts[vi][axis]-GetCenter()[2];
+			float diff = 1 / (dist * dist+1);
+			if (dist>0) 
+			{
+				verts[vi] = verts[vi] + V3(0, 0, mul * diff);
+			}
+			else 
+			{
+				verts[vi] = verts[vi] + V3(0, 0, mul * diff);
+			}
+		
+		}
+		
+	}
+
+}
+
+void TMesh::DistortSinV2() {
+	int mul = 1;
+	for (int vi = 0; vi < vertsN; vi++)
+	{
+		float dist = (verts[vi] - GetCenter()).Length();
+		V3 dir = (verts[vi] - GetCenter()).Normalized();
+
+		int n1, n2;
+		n1 = 50000000;
+		n2 = 0.005;
+		float diff = 1000000 / (dist + n2);
+		diff = sin(n1*abs(diff));		  		 		
+		verts[vi] = verts[vi] + dir * diff*mul;
+				
+
+	}
+
+}
+
+void TMesh::DistortPoke() {
+	int mul = 1;
+	for (int vi = 0; vi < vertsN; vi++)
+	{
+		float dist = (verts[vi] - V3(0,0,-25)).Length();		
+		int n1, n2;
+		n1 = 50000;
+		n2 = 5;
+		float diff = 50 / (dist + n2);		
+		verts[vi] = verts[vi] + V3( diff * mul, diff * mul,0);
+
+
+	}
+
+}
+
+void TMesh::DistortSin(int axis) {
+	int mul = 1;
+	for (int vi = 0; vi < vertsN; vi++)
+	{
+		float dist = verts[vi][0] - GetCenter()[0];
+		float dist1 = verts[vi][1] - GetCenter()[1];
+		float dist2 = verts[vi][2] - GetCenter()[2];
+		int n1, n2;
+		n1 = 1000000;
+		n2 = 50;
+		float diff = 1 / (dist * dist + n2);
+		diff = sin(n1 * abs(diff));
+		float diff1 = 1 / (dist1 * dist1 + n2);
+		diff1 = sin(n1 * abs(diff1));
+		float diff2 = 1 / (dist2 * dist2 + n2);
+		diff2 = sin(n1 * abs(diff2));
+
+
+		if (dist > 0)
+		{
+			verts[vi] = verts[vi] + V3(mul * diff, 0, 0);
+		}
+		else {
+			verts[vi] = verts[vi] + V3(-1 * mul * diff, 0, 0);
+		}
+
+		if (dist1 > 0)
+		{
+			verts[vi] = verts[vi] + V3(0, mul * diff, 0);
+		}
+		else {
+			verts[vi] = verts[vi] + V3(0, -1 * mul * diff, 0);
+		}
+
+		if (dist2 > 0)
+		{
+			verts[vi] = verts[vi] + V3(0, 0, mul * diff);
+		}
+		else {
+			verts[vi] = verts[vi] + V3(0, 0, -1 * mul * diff);
+		}
+
+
+
+
+
+	}
+
+}
+
+
 void TMesh::SetCenter(V3 center) {
 
 	V3 currCenter = GetCenter();
