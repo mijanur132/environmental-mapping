@@ -977,7 +977,7 @@ void TMesh::RenderFilledEnvRefrac(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
 				V3 unprojectCurrP = ppc->UnProject(currP);
 				V3 inRay = unprojectCurrP - ppc->C;
 				V3 reflectedRay = inRay.reflection(currNormal);
-				V3 refractedRay = inRay.refraction(1, 1.7, inRay, currNormal);
+				V3 refractedRay = inRay.refraction(1.1, 1.0, currNormal);
 
 				unsigned int colorenv1 = cm->envmap4mRay(reflectedRay);
 				unsigned int colorenv2 = cm->envmap4mRay(refractedRay);
@@ -986,7 +986,7 @@ void TMesh::RenderFilledEnvRefrac(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
 				c1.SetFromColor(colorenv1);
 				V3 c2;
 				c2.SetFromColor(colorenv2);
-				V3 c = c1*0.5 + c2*0.5;
+				V3 c = c1*0.0 + c2*1.0;
 				unsigned int colorenv=c.GetColor();
 				
 

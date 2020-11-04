@@ -228,13 +228,34 @@ V3 V3::reflection( V3 normal_n){
 	return r;
 }
 
-V3 V3::refraction(float n1, float n2, V3 I, V3 N) 
+V3 V3::refraction(float n1, float n2,V3 _N) 
 {
-	float eta, c1, cs2;
+	V3 N = _N.Normalized();
+	V3 I = *this;
+	I = I.Normalized();
+	//cout << "I:" << I << " N:" << N << endl;
+	double eta, c1, cs2;
 	V3 T;
-	eta = n1 / n2;			/* relative index of refraction */
-	c1 = I*N*(-1);			/* cos(theta1) */
-	cs2 = 1 - eta * eta * (1 - c1 * c1);	/* cos^2(theta2) */	
-	T = I * eta + N*(eta*c1 - sqrt(cs2));
+	eta = n1/n2;			/* relative index of refraction */
+	//cout <<"eta:"<< eta << endl;
+	c1 = I*N;			/* cos(theta1) */
+	if (c1 < 0)
+	{
+		c1 = c1 * (-1);
+	}
+	else {
+		N = N * (-1);
+		eta = 1.00f / eta;
+	}
+	//cout << "c1:" << c1 << endl;
+	cs2 = 1 - eta * eta * (1 - c1 * c1);	/* cos^2(theta2) */
+	if (cs2 < 0)
+	{
+	//	cout << "return same" << endl;
+		return I;
+	}
+//	cout << "cs2:" << cs2 << endl;
+	T = I * eta + N*(eta*c1 - sqrtf(cs2));
+	//cout << "T:" << T << endl;
 	return T;
 }

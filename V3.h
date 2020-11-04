@@ -41,6 +41,6 @@ public:
 	V3 RotatePoint(V3 aO, V3 adir, float theta);
 	V3 Light(V3 lv, V3 nv, float ka);
 	V3 reflection(V3 normal);
-	V3 refraction(float n1, float n2, V3 I, V3 N);
+	V3 refraction(float n1, float n2, V3 N);
 
 };
