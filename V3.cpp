@@ -227,3 +227,14 @@ V3 V3::reflection( V3 normal_n){
 	//cout <<"reflection: "<< r << endl;
 	return r;
 }
+
+V3 V3::refraction(float n1, float n2, V3 I, V3 N) 
+{
+	float eta, c1, cs2;
+	V3 T;
+	eta = n1 / n2;			/* relative index of refraction */
+	c1 = I*N*(-1);			/* cos(theta1) */
+	cs2 = 1 - eta * eta * (1 - c1 * c1);	/* cos^2(theta2) */	
+	T = I * eta + N*(eta*c1 - sqrt(cs2));
+	return T;
+}

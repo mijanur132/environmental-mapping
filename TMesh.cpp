@@ -308,7 +308,7 @@ void TMesh::Distort(int axis) {
 	for (int vi = 0; vi < vertsN; vi++) 
 	{
 		float dist =verts[vi][axis]-GetCenter()[axis] ;
-		float diff = 1 / (dist*dist+1);
+		float diff = 1 / (dist*dist+10);
 		if (axis==1)
 		{
 			if (dist > 0)
@@ -377,7 +377,7 @@ void TMesh::DistortPoke() {
 		int n1, n2;
 		n1 = 50000;
 		n2 = 5;
-		float diff = 50 / (dist + n2);		
+		float diff = 50 / (dist*dist + n2);		
 		verts[vi] = verts[vi] + V3( diff * mul, diff * mul,0);
 
 
@@ -394,7 +394,7 @@ void TMesh::DistortSin(int axis) {
 		float dist2 = verts[vi][2] - GetCenter()[2];
 		int n1, n2;
 		n1 = 1000000;
-		n2 = 50;
+		n2 = 100;
 		float diff = 1 / (dist * dist + n2);
 		diff = sin(n1 * abs(diff));
 		float diff1 = 1 / (dist1 * dist1 + n2);
@@ -900,6 +900,97 @@ void TMesh::RenderFilledEnv(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
 				unsigned int colorenv = cm->envmap4mRay(reflectedRay);
 
 				fb->Set(u, v,colorenv);
+			}
+		}
+
+	}
+
+	delete[]pverts;
+
+}
+void TMesh::RenderFilledEnvRefrac(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
+
+#if 0
+	project three vertices of the triangle camera plane
+		check boundary
+#endif
+
+		V3* pverts = new V3[vertsN];
+	for (int vi = 0; vi < vertsN; vi++) {
+		if (!ppc->Project(verts[vi], pverts[vi]))
+			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
+	}
+
+	for (int tri = 0; tri < trisN; tri++) {
+		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
+		if (
+			pverts[vinds[0]][0] == FLT_MAX ||
+			pverts[vinds[1]][0] == FLT_MAX ||
+			pverts[vinds[2]][0] == FLT_MAX
+			)
+			continue;
+
+		AABB aabb(pverts[vinds[0]]);
+		aabb.AddPoint(pverts[vinds[1]]);
+		aabb.AddPoint(pverts[vinds[2]]);
+		// clipping
+		if (!aabb.clipwithframe(fb->w, fb->h))
+			continue;
+
+		int left = (int)(aabb.corners[0][0] + .5f);
+		int right = (int)(aabb.corners[1][0] - .5f);
+		int top = (int)(aabb.corners[0][1] + .5f);
+		int bottom = (int)(aabb.corners[1][1] - .5f);
+
+		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
+		V3 zLE = ssim * zv;
+
+
+		M33 nm;
+		nm.SetColumn(0, normals[vinds[0]]);
+		nm.SetColumn(1, normals[vinds[1]]);
+		nm.SetColumn(2, normals[vinds[2]]);
+		M33 nLEm;
+		nLEm[0] = ssim * nm[0];
+		nLEm[1] = ssim * nm[1];
+		nLEm[2] = ssim * nm[2];
+
+
+		for (int v = top; v <= bottom; v++) {
+			for (int u = left; u <= right; u++) {
+				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
+				V3 sid = eeqsm * currPix;
+				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
+					continue; // outside of triangle
+				float currz = zLE * currPix;
+
+				if (fb->Farther(u, v, currz))
+				{
+					continue;
+				}
+
+				// normal at current pixel
+				V3 currNormal = nLEm * currPix;
+				V3 currP = V3(u, v, currz);
+				V3 unprojectCurrP = ppc->UnProject(currP);
+				V3 inRay = unprojectCurrP - ppc->C;
+				V3 reflectedRay = inRay.reflection(currNormal);
+				V3 refractedRay = inRay.refraction(1, 1.7, inRay, currNormal);
+
+				unsigned int colorenv1 = cm->envmap4mRay(reflectedRay);
+				unsigned int colorenv2 = cm->envmap4mRay(refractedRay);
+
+				V3 c1;
+				c1.SetFromColor(colorenv1);
+				V3 c2;
+				c2.SetFromColor(colorenv2);
+				V3 c = c1*0.5 + c2*0.5;
+				unsigned int colorenv=c.GetColor();
+				
+
+				fb->Set(u, v, colorenv);
 			}
 		}
 

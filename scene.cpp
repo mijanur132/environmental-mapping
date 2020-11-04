@@ -72,7 +72,7 @@ Scene::Scene()
 
 	tmeshes[1].LoadBin("geometry/teapot1K.bin");
 	//tmeshes[1].LoadBin("geometry/teapot57K.bin");
-	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -50.0f));  //***************************center of 1
+	tmeshes[1].SetCenter(V3(0.0f, 0.0f, -80.0f));  //***************************center of 1
 	tmeshes[1].onFlag = 1;
 	//tmeshes[1].Rotate(tmeshes[1].GetCenter(), V3(1, 0, 0), -90);
 
@@ -115,9 +115,14 @@ Scene::Scene()
 	our drawing or other rendering operation
 #endif
 
-		//fb0->redraw();
+	//fb0->redraw();
+#if 0
 	fb1->redraw();
-
+	V3 in = V3(1, 0, 0) - V3(0, 0, 0);
+	V3 N = V3(-1, 0, 0);
+	V3 refracted = in.refraction(1,1.3,in,N);
+	cout <<"refracted: "<< refracted << endl;
+#endif
 	//RenderERI2Conv();   //run to generate the ERI to conv view
 	Renderenvmap();  //run to general env mapping
 
@@ -278,11 +283,12 @@ void Scene::DBG()
 	//globalIndex4dbg++;
 	Renderenvmap();
 	globalIndex2++;
-	if (globalIndex2 < 2)
+	if (globalIndex2 < 40)
 	{
+		tmeshes[1].Distort(0);
 		//tmeshes[1].DistortSin(0);
 		//tmeshes[1].DistortSinV2();
-		tmeshes[1].DistortPoke();
+		//tmeshes[1].DistortPoke();
 	}
 	V3 lookatP = tmeshes[1].GetCenter();
 	V3 currC = ppc1->C;
@@ -319,7 +325,8 @@ void Scene::Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm1) {
 
 			V3 C(1.0f, 0.0f, 0.0f);
 			tmeshes[tmi].Light(C, L, ka);
-			tmeshes[tmi].RenderFilledEnv(rfb, rppc, cm1);
+			//tmeshes[tmi].RenderFilledEnv(rfb, rppc, cm1);
+			tmeshes[tmi].RenderFilledEnvRefrac(rfb, rppc, cm1);
 
 		}
 
