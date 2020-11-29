@@ -2,6 +2,7 @@
 #include "eri.h"
 #include"matrix.h"
 #include <cmath>
+#include <iostream>
 
 
 eri::eri(int _w, int _h) {

@@ -3,26 +3,23 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Gl_Window.H>
 #include <GL/glut.h>
-#include "ppc.h"
-#include"texture.h"
 
+#include "ppc.h"
 class PPC;
 
 class FrameBuffer : public Fl_Gl_Window {
 public:
-	unsigned int *pix, * pix1; // pixel array
-	float *zb, *zbL1, * zbL2, * zbL3 , * zbL4 ;
+	unsigned int *pix; // pixel array
+	float *zb;
 	int w, h;
+	int isHW;
 	FrameBuffer(int u0, int v0, int _w, int _h, unsigned int _id);
 	void draw();
 	void KeyboardHandle();
 	int handle(int guievent);
 	void SetBGR(unsigned int bgr);
 	void Set(int u, int v, unsigned int color);
-	void Set(int u, int v, unsigned int * pix, unsigned int color);
-	int getPixelIndex(int u, int v);
 	unsigned int Get(int u, int v);
-	unsigned int Get(int u, int v, unsigned int* pix);
 	float GetZ(int u, int v);
 	void LoadTiff(char* fname);
 	void SaveAsTiff(char *fname);
@@ -31,14 +28,11 @@ public:
 	void Draw2DSegment(V3 p0, V3 c0, V3 p1, V3 c1);
 	void DrawSquarePoint(float uf, float vf, int psize, unsigned int color);
 	int Farther(int u, int v, float currz);
-	int FartherLightZ(float *zb,int u, int v, float currz);
-	int FartherLightZCompare(float* zb, int u, int v, float currz);
 	void ClearZB();
-	void ClearZB(float* zb);
+	void SetZB(int u, int v, float z);
 	void Draw3DPoint(V3 P, PPC *ppc, unsigned int color, int psize);
-	void showTextureImageAsUploaded(texture* t1);
-	void copyPix(unsigned int* pix, unsigned int* pix1);
-	void copy2tex(texture* t1);
-	void upsideDown();
-	
+	// given an image with its camera ppc0, create a new image fb1, with camera ppc1
+	// ppc0 and ppc1 have the same eye, that is V3 C
+	void GeneralizedRotation(PPC *ppc0, FrameBuffer *fb1, PPC *ppc1);
+	unsigned int Lookup(float uf, float vf);
 };

@@ -13,84 +13,38 @@ using namespace std;
 FrameBuffer::FrameBuffer(int u0, int v0,
 	int _w, int _h, unsigned int _id) : Fl_Gl_Window(u0, v0, _w, _h, 0) {
 
+	isHW = 0;
 	w = _w;
 	h = _h;
 	pix = new unsigned int[w*h];
-	pix1 = new unsigned int[w * h];
 	zb = new float[w*h];
-	zbL1 = new float[w * h];
-	zbL2 = new float[w * h];
-	zbL3 = new float[w * h];
-	zbL4 = new float[w * h];
-
 
 }
 
 void FrameBuffer::ClearZB() {
 
 	for (int uv = 0; uv < w*h; uv++)
-		zb[uv] = -5000.0f;
+		zb[uv] = 0.0f;
 
-}
-
-void FrameBuffer::ClearZB(float* zb1) {
-
-	for (int uv = 0; uv < w * h; uv++)
-		zb1[uv] = -5000.0f;
-
-}
-
-int FrameBuffer::getPixelIndex(int u, int v)
-{
-	if (u >= w) {
-		//	cout << u << endl;
-		u = u % w;
-		//cout << "new U:" << u << endl;
-	}
-	if (v >= h)
-	{
-		//	cout << v << endl;
-		v = v % h;
-		//	cout << "new U:" << v << endl;
-	}
-
-	int id = u + v * w;
-	return id;
-
-}
-
-void FrameBuffer::copyPix(unsigned int* pix, unsigned int* pix1) {
-
-	for (int uv = 0; uv < w * h; uv++)
-		pix1[uv] = pix[uv];
-	
-}
-
-void FrameBuffer::upsideDown()
-{/*
-	copyPix(pix, pix1);
-	for (int uv = 0; uv < w * h; uv++)
-	{
-		pix[uv] = 0;
-	}*/
-
-	for (int v = 0; v < h; v++)
-	{
-		for (int u = 0; u < w; u++)
-		{
-			int pixI = v * w + u;
-			int pix1I = (h - 1 - v) * w + u;
-			pix1[pix1I]=pix[pixI];
-		}
-
-	}
-
-	copyPix(pix1, pix);
 }
 
 void FrameBuffer::draw() {
 
-	glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
+	if (!isHW) {
+		glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
+		return;
+	}
+	
+	// for HW and GPU framebuffers
+	if (isHW == 1) {
+		scene->RenderHWBB();
+	}
+	else {
+		cout<<"draw():"<<isHW<<endl;
+		scene->RenderGPU();
+	}
+
+	glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pix);
 
 }
 
@@ -105,7 +59,11 @@ int FrameBuffer::handle(int event) {
 	case FL_MOVE: {
 		int u = Fl::event_x();
 		int v = Fl::event_y();
-		cerr << u << " " << v << "        \r";
+		if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
+			return 0;
+		V3 cv; cv.SetFromColor(Get(u, v));
+		cerr << u << " " << v << ", RGB: " << cv[0] << " " << 
+			cv[1] << " " << cv[2] << "             \r";
 		return 0;
 	}
 	default:
@@ -115,11 +73,10 @@ int FrameBuffer::handle(int event) {
 }
 
 void FrameBuffer::KeyboardHandle() {
-
 	int key = Fl::event_key();
 	switch (key) {
-	case FL_Up: {
-		cerr << "INFO: pressed up key";
+	case FL_Left: {
+
 		break;
 	}
 	default:
@@ -137,12 +94,12 @@ void FrameBuffer::Set(int u, int v, unsigned int color) {
 
 }
 
-void FrameBuffer::Set(int u, int v, unsigned int * pix, unsigned int color) {
+void FrameBuffer::SetZB(int u, int v, float z) {
 
 	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
 		return;
 
-	pix[(h - 1 - v) * w + u] = color;
+	zb[(h - 1 - v)*w + u] = z;
 
 }
 
@@ -235,33 +192,6 @@ int FrameBuffer::Farther(int u, int v, float currz) {
 
 }
 
-int FrameBuffer::FartherLightZ(float* zb1, int u, int v, float currz) {
-
-	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
-		return 1;
-	int uv = (h - 1 - v) * w + u;
-	if (currz < zbL1[uv])
-		return 1;
-	zbL1[uv] = currz;
-	return 0;
-
-}
-int FrameBuffer::FartherLightZCompare(float* zb1, int u, int v, float currz) {
-
-	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
-		return 1;
-	int uv = (h - 1 - v) * w + u;
-	//if (currz+2 < zbL1[uv] )
-	if (currz +02.25 < zbL1[uv])
-		return 1;
-	else {
-		return 0;
-	}
-
-}
-
-
-
 void FrameBuffer::Draw2DSegment(V3 p0, V3 c0, V3 p1, V3 c1) {
 
 	float du = fabsf((p0 - p1)[0]);
@@ -303,7 +233,7 @@ void FrameBuffer::Draw3DSegment(V3 P0, V3 P1, PPC *ppc, V3 c0, V3 c1) {
 		return;
 	if (!ppc->Project(P1, p1))
 		return;
-	cout << p0 << endl;
+
 	Draw2DSegment(p0, c0, p1, c1);
 
 }
@@ -329,43 +259,36 @@ void FrameBuffer::Draw3DPoint(V3 P, PPC *ppc, unsigned int color, int psize) {
 
 unsigned int FrameBuffer::Get(int u, int v) {
 
-	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
-		return 0;
 	return pix[(h - 1 - v)*w + u];
 
 }
 
-unsigned int FrameBuffer::Get(int u, int v,unsigned int * pix) {
-
-	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
-		return 0;
-	return pix[(h - 1 - v) * w + u];
-
-}
-
 float FrameBuffer::GetZ(int u, int v) {
-	if (u < 0 || u > w - 1 || v < 0 || v > h - 1)
-		return 0;
+
 	return zb[(h - 1 - v)*w + u];
 
 }
 
-void FrameBuffer::showTextureImageAsUploaded(texture* t1) {
+unsigned int FrameBuffer::Lookup(float uf, float vf) {
 
-	
-	for (int i = 0; i < t1->w; i++)
-	{
-		for (int j = 0; j < t1->h; j++)
-		{
-			unsigned int color_ij = i + j * t1->w;
-			Set(i, j, t1->pix[color_ij]);
-
-		}
-
-	}
-
+	if (uf < 0.0f || uf >= (float)w ||
+		vf < 0.0f || vf >= (float)h)
+		return 0xFFFF00FF;
+	int u = (int)uf;
+	int v = (int)vf;
+	return Get(u, v);
 }
 
-void FrameBuffer::copy2tex(texture* t1) {
-	copyPix(pix, t1->pix);
+void FrameBuffer::GeneralizedRotation(PPC *ppc0, FrameBuffer *fb1, PPC *ppc1) {
+
+	for (int v = 0; v < fb1->h; v++) {
+		for (int u = 0; u < fb1->w; u++) {
+			V3 P = ppc1->UnProject(V3(.5f + (float)u, .5f + (float)v, 1.0f));
+			V3 pp;
+			if (!ppc0->Project(P, pp))
+				continue;
+			fb1->Set(u, v, Lookup(pp[0], pp[1]));
+		}
+	}
+
 }

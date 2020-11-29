@@ -41,24 +41,34 @@ V3 M33::GetColumn(int i) {
 
 }
 
+void M33::SetColumn(int i, V3 v) {
 
-void M33::SetColumn(int i, V3 c) {
+	M33&m = *this;
+	m[0][i] = v[0];
+	m[1][i] = v[1];
+	m[2][i] = v[2];
 
-	M33& m = *this;
-	m[0][i] = c[0];
-	m[1][i] = c[1];
-	m[2][i] = c[2];
+}
+
+void M33::SetRotationAboutY(float thetad) {
+
+	float theta = thetad * 3.1415629f / 180.0f;
+	M33 &m = *this;
+	m[0] = V3(cosf(theta), 0.0f, sin(theta));
+	m[1] = V3(0.0f, 1.0f, 0.0f);
+	m[2] = V3(-sinf(theta), 0.0f, cos(theta));
 
 }
 
 
-void M33::SetRotationAboutY(float angle) {
+M33 M33::operator*(M33 m1) {
 
-	float angler = angle * 3.1415f / 180.0f;
-	M33& m = *this;
-	m[0] = V3(cosf(angler), 0.0f, sinf(angler));
-	m[1] = V3(0.0f, 1.0f, 0.0f);
-	m[2] = V3(-sinf(angler), 0.0f, cosf(angler));
+	M33 ret;
+	M33 &m0 = *this;
+	ret.SetColumn(0, m0*m1.GetColumn(0));
+	ret.SetColumn(1, m0*m1.GetColumn(1));
+	ret.SetColumn(2, m0*m1.GetColumn(2));
+	return ret;
 
 }
 
@@ -69,5 +79,4 @@ M33 M33::Transposed() {
 	ret[1] = GetColumn(1);
 	ret[2] = GetColumn(2);
 	return ret;
-
 }

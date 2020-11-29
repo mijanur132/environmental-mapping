@@ -30,11 +30,7 @@ V3 V3::operator-(V3 v1) {
 	return ret;
 
 }
-V3 V3::UnitVector() {
 
-	return (*this) * (1.0f / Length());
-
-}
 
 
 ostream& operator<<(ostream& ostr, V3 v) {
@@ -65,34 +61,6 @@ V3 V3::operator/(float scf) {
 	ret[1] = ret[1] / scf;
 	ret[2] = ret[2] / scf;
 	return ret;
-
-}
-V3 V3::RotateThisPointAboutArbitraryAxis(V3 O, V3 a, float angled) {
-
-	// find auxiliary axis
-	V3 aux;
-	if (fabsf(a[0]) > fabsf(a[1])) {
-		aux = V3(0.0f, 1.0f, 0.0f);
-	}
-	else {
-		aux = V3(1.0f, 0.0f, 0.0f);
-	}
-
-	V3 a0 = (aux ^ a).UnitVector();
-	V3 a2 = (a0 ^ a).UnitVector();
-	M33 lcs;
-	lcs[0] = a0;
-	lcs[1] = a;
-	lcs[2] = a2;
-
-	V3& p = *this;
-	// change to local coordinate system O, a0, a, a2
-	V3 p1 = lcs * (p - O);
-	// rotate about "Second axis" in local coordinate system;
-	M33 mr; mr.SetRotationAboutY(angled);
-	V3 p2 = mr * p1;
-	V3 p3 = lcs.Inverted() * p2 + O;
-	return p3;
 
 }
 
@@ -178,11 +146,72 @@ V3 V3::RotatePoint(V3 aO, V3 adir, float theta) {
 }
 
 V3 V3::Light(V3 lv, V3 nv, float ka) {
-	float kd = lv * nv; kd = (kd < 0.0f) ? 0.0f : kd;
-	//cout << "normal nv lv kd:" << nv<<" " <<lv<<" "<<kd<< endl;
-	V3& C = *this;
-	return C * (ka + (1.0f - ka) * kd);
+	float kd = lv*nv; kd = (kd < 0.0f) ? 0.0f : kd;
+	V3 &C = *this;
+	return C*(ka + (1.0f - ka)*kd);
 }
+
+
+V3 V3::Reflect(V3 r) {
+
+	V3 &n = *this;
+	V3 rn = n*(n*r);
+	V3 rr = r - rn*2.0f;
+	return rr;
+
+}
+
+
+V3 V3::reflection(V3 normal_n) {
+	V3 incidentRay_d = *this;
+	normal_n = normal_n.Normalized();
+	//	cout << *this << " " << normal_n << endl;
+	V3 r(0, 0, 0);
+	float d_dot_n = incidentRay_d * normal_n;
+	//	cout << " ddotn:" << d_dot_n << endl;
+	d_dot_n = d_dot_n * 2;
+	V3 normal_n_d_dot_n = normal_n * d_dot_n;
+	//cout << "normal_n * d_dot_n: " << normal_n_d_dot_n << endl;
+	r = incidentRay_d - normal_n_d_dot_n;
+	//cout <<"reflection: "<< r << endl;
+	return r;
+}
+
+V3 V3::UnitVector() {
+
+	return (*this) * (1.0f / Length());
+
+}
+
+V3 V3::RotateThisPointAboutArbitraryAxis(V3 O, V3 a, float angled) {
+
+	// find auxiliary axis
+	V3 aux;
+	if (fabsf(a[0]) > fabsf(a[1])) {
+		aux = V3(0.0f, 1.0f, 0.0f);
+	}
+	else {
+		aux = V3(1.0f, 0.0f, 0.0f);
+	}
+
+	V3 a0 = (aux ^ a).UnitVector();
+	V3 a2 = (a0 ^ a).UnitVector();
+	M33 lcs;
+	lcs[0] = a0;
+	lcs[1] = a;
+	lcs[2] = a2;
+
+	V3& p = *this;
+	// change to local coordinate system O, a0, a, a2
+	V3 p1 = lcs * (p - O);
+	// rotate about "Second axis" in local coordinate system;
+	M33 mr; mr.SetRotationAboutY(angled);
+	V3 p2 = mr * p1;
+	V3 p3 = lcs.Inverted() * p2 + O;
+	return p3;
+
+}
+
 
 V3 V3::RotateThisVectorAboutDirection(V3 a, float angled) {
 
@@ -211,51 +240,4 @@ V3 V3::RotateThisVectorAboutDirection(V3 a, float angled) {
 	V3 p3 = lcs.Inverted() * p2;
 	return p3;
 
-}
-
-V3 V3::reflection( V3 normal_n){
-	V3 incidentRay_d = *this;
-	normal_n = normal_n.Normalized();
-//	cout << *this << " " << normal_n << endl;
-	V3 r(0, 0, 0);
-	float d_dot_n = incidentRay_d * normal_n;
-//	cout << " ddotn:" << d_dot_n << endl;
-	d_dot_n = d_dot_n * 2;
-	V3 normal_n_d_dot_n = normal_n * d_dot_n;
-	//cout << "normal_n * d_dot_n: " << normal_n_d_dot_n << endl;
-	r = incidentRay_d - normal_n_d_dot_n;
-	//cout <<"reflection: "<< r << endl;
-	return r;
-}
-
-V3 V3::refraction(float n1, float n2,V3 _N) 
-{
-	V3 N = _N.Normalized();
-	V3 I = *this;
-	I = I.Normalized();
-	//cout << "I:" << I << " N:" << N << endl;
-	double eta, c1, cs2;
-	V3 T;
-	eta = n1/n2;			/* relative index of refraction */
-	//cout <<"eta:"<< eta << endl;
-	c1 = I*N;			/* cos(theta1) */
-	if (c1 < 0)
-	{
-		c1 = c1 * (-1);
-	}
-	else {
-		N = N * (-1);
-		eta = 1.00f / eta;
-	}
-	//cout << "c1:" << c1 << endl;
-	cs2 = 1 - eta * eta * (1 - c1 * c1);	/* cos^2(theta2) */
-	if (cs2 < 0)
-	{
-	//	cout << "return same" << endl;
-		return I;
-	}
-//	cout << "cs2:" << cs2 << endl;
-	T = I * eta + N*(eta*c1 - sqrtf(cs2));
-	//cout << "T:" << T << endl;
-	return T;
 }

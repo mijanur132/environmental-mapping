@@ -6,6 +6,7 @@ class AABB {
 public:
 	V3 corners[2];
 	AABB(V3 firstPoint);
+	AABB();
 	void AddPoint(V3 P);
-	int clipwithframe(int w, int h);
+	int ClipWithFrame(int w, int h);
 };

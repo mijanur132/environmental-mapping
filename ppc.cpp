@@ -18,19 +18,6 @@ PPC::PPC(float hfov, int _w, int _h) {
 
 }
 
-PPC::PPC(float hfov, float vfov, int _w) : a(1.0f, 0.0f, 0.0f), b(0.0f, -1.0f, 0.0f),
-C(0.0f, 0.0f, 0.0f), w(_w) {
-
-	
-	float hfovr = hfov * 3.14159f / 180.0f;
-	float vfovr = vfov * 3.14159f / 180.0f;
-	h = tan(vfovr / 2) / tan(hfovr / 2) * w;
-	float f = -(float)w / (2.0f * tanf(hfovr / 2.0f));
-	c = V3(-(float)w / 2.0f, (float)h / 2.0f, f);
-
-
-}
-
 int PPC::Project(V3 P, V3 &p) {
 
 	M33 M;
@@ -44,7 +31,7 @@ int PPC::Project(V3 P, V3 &p) {
 
 	p[0] = q[0] / q[2];
 	p[1] = q[1] / q[2];
-	p[2] = 1.0f / (w+0.00000001);
+	p[2] = 1.0f / w;
 	return 1;
 }
 
@@ -80,16 +67,14 @@ void PPC::PanLeftRight(float rstep) {
 
 }
 
-void PPC::Pan(float _angled) {
 
-	float angled = _angled * -1.0f;
-	V3 dv = (b * -1.0f).UnitVector();
-	a = a.RotateThisVectorAboutDirection(dv, angled);
-	c = c.RotateThisVectorAboutDirection(dv, angled);
-	
+void PPC::TiltUpDown(float rstep) {
+
+	V3 adir = a.Normalized();
+	b = b.RotateVector(adir, rstep);
+	c = c.RotateVector(adir, rstep);
 
 }
-
 
 void PPC::SetPose(V3 newC, V3 lookAtPoint, V3 upGuidance) {
 
@@ -160,15 +145,123 @@ void PPC::Visualize(FrameBuffer *vfb, PPC *vppc, float vf, FrameBuffer *fb) {
 
 }
 
+
+void PPC::Visualize(FrameBuffer *vfb, PPC *vppc, FrameBuffer *fb) {
+
+	for (int v = 0; v < fb->h; v++) {
+		for (int u = 0; u < fb->w; u++) {
+			float currz = fb->GetZ(u, v);
+			if (currz == 0.0f)
+				continue;
+			V3 pix3D = UnProject(V3(.5f + (float)u, .5f + (float)v, currz));
+			vfb->Draw3DPoint(pix3D, vppc, fb->Get(u, v), 1);
+		}
+	}
+
+}
+
+
+void PPC::SetInterpolated(PPC *ppc0, PPC *ppc1, int stepsN, int stepi) {
+
+	float intf = (float)stepi / (float)(stepsN - 1);
+	w = ppc0->w;
+	h = ppc0->h;
+	V3 newC = ppc0->C + (ppc1->C - ppc0->C)*intf;
+	V3 vd0 = (ppc0->a^ppc0->b).Normalized();
+	V3 vd1 = (ppc1->a^ppc1->b).Normalized();
+	V3 vd = vd0 + (vd1 - vd0)*intf;
+	vd = vd.Normalized();
+	V3 qup = ppc0->b + (ppc1->b - ppc0->b)*intf; qup = qup *-1.0f; qup = qup.Normalized();
+	*this = *ppc0;
+	SetPose(newC, newC + vd, qup);
+
+	float f0 = ppc0->GetF();
+	float f1 = ppc1->GetF();
+	float f = f0 + (f1 - f0)*intf;
+	ScaleFocalLength(f / ppc0->GetF());
+
+}
+
+void PPC::ScaleFocalLength(float flscf) {
+	
+	V3 vd = (a^b).Normalized();
+	float f = c*vd;
+	f *= flscf;
+	c = vd*f - a*(float)w / 2.0f - b*(float)h / 2.0f;
+}
+
+
+M33 PPC::CameraMatrix() {
+
+	M33 ret;
+	ret.SetColumn(0, a);
+	ret.SetColumn(1, b);
+	ret.SetColumn(2, c);
+	return ret;
+
+}
+
+void PPC::SetIntrinsicsHW() {
+
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	float f = GetF();
+	float hither = 0.25f;
+	float yon = 1000.0f;
+	float scalef = hither / f;
+	float wf = a.Length() * w;
+	float hf = b.Length() * h;
+	glFrustum(-wf / 2.0f*scalef, wf / 2.0f*scalef, -hf / 2.0f*scalef, 
+		hf / 2.0f*scalef, hither, yon);
+	glMatrixMode(GL_MODELVIEW); // default matrix mode
+}
+
+void PPC::SetIntrinsicsHWgpu() {
+
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	float f = GetF();
+	float hither = 0.25f;
+	float yon = 1000.0f;
+	float scalef = hither / f;
+	float wf = a.Length() * w;
+	float hf = b.Length() * h;
+	glFrustum(-wf / 2.0f * scalef, wf / 2.0f * scalef, -hf / 2.0f * scalef,
+		hf / 2.0f * scalef, hither, yon);
+	glMatrixMode(GL_MODELVIEW); // default matrix mode
+}
+
+void PPC::SetExtrinsicsHW(V3 eye, V3 look, V3 down) {
+	//V3 eye, look, down;
+	//eye = C;
+	//look = C + (a^b)*100.0f;
+	//down = b.Normalized();
+	glLoadIdentity();
+	gluLookAt(eye[0], eye[1], eye[2], 
+		look[0], look[1], look[2], 
+		-down[0], -down[1], -down[2]);
+}
+
+void PPC::SetExtrinsicsHW() {
+	V3 eye, look, down;
+	eye = C;
+	look = C + (a^b)*100.0f;
+	down = b.Normalized();
+	glLoadIdentity();
+	gluLookAt(eye[0], eye[1], eye[2],
+		look[0], look[1], look[2],
+		-down[0], -down[1], -down[2]);
+}
+
+
+
 void PPC::Roll(float angled) {
-
-
 	V3 dv = GetVD().Normalized();
 	a = a.RotateThisVectorAboutDirection(dv, angled);
 	b = b.RotateThisVectorAboutDirection(dv, angled);
 	c = c.RotateThisVectorAboutDirection(dv, angled);
-	
-
 }
 V3 PPC::GetVD() {
 
@@ -180,13 +273,12 @@ V3 PPC::GetUnitRay(float uf, float vf) {
 
 	V3 ray = a * uf + b * vf + c;
 	return ray.UnitVector();
-
 }
 
 V3 PPC::GetRayVector(float uf, float vf)
 {
 	V3 sceneP(uf, vf, 1);
-	V3 rayVec=UnProject(sceneP)-C;
+	V3 rayVec = UnProject(sceneP) - C;
 	return rayVec;
 }
 
@@ -196,9 +288,6 @@ V3 PPC::lookAtRayVecDir(V3 rayVec)
 	V3 newRayVec = C + rayVec;
 	Project(newRayVec, envP);
 	return envP;
-
-	
-	
 }
 
 void PPC::Tilt(float angled) {
@@ -207,12 +296,12 @@ void PPC::Tilt(float angled) {
 	V3 dv = a.UnitVector();
 	b = b.RotateThisVectorAboutDirection(dv, angled);
 	c = c.RotateThisVectorAboutDirection(dv, angled);
-	
+
 
 }
 
 void PPC::printPPC() {
 
-	cout << "C:" << c << " a:" << a << " b:" << b << " c:" << c << " vd:" << GetVD() <<" w:"<<w<<" h:"<<h<< endl;
+	cout << "C:" << c << " a:" << a << " b:" << b << " c:" << c << " vd:" << GetVD() << " w:" << w << " h:" << h << endl;
 
 }

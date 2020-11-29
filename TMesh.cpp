@@ -2,11 +2,12 @@
 
 #include <fstream>
 #include <iostream>
-
+//#include "stb_image_write.h"
 #include "M33.h"
 #include "TMesh.h"
 #include "AABB.h"
-#include "cubemap.h"
+#include "vector"
+//#include "SOIL.h"
 
 using namespace std;
 
@@ -16,34 +17,9 @@ void TMesh::Allocate(int _vertsN, int _trisN) {
 	vertsN = _vertsN;
 	trisN = _trisN;
 	verts = new V3[vertsN];
-	textureSTpair = new V3[vertsN];
 	colors = new V3[vertsN];
 	normals = new V3[vertsN];
 	tris = new unsigned int[trisN * 3];
-	tileM = 1;
-	tileN = 1;
-}
-
-void TMesh::InitTexture()
-{
-	for (int i = 0; i < vertsN; i++)
-	{
-		textureSTpair[i] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-
-}
-
-void TMesh::info() {
-
-	for (int i = 0; i < trisN; i++)
-	{
-		cout << "vertices of triangle: " << i << " are: " << endl;
-		cout<<"vertice ID: "<<tris[3 * i] << ", vertice:" << verts[tris[3 * i]] << ", textureRSpair:" << textureSTpair[tris[3 * i]] << endl;
-		cout << "vertice ID: " << tris[3 * i+1] << ", vertice:" << verts[tris[3 * i+1]] << ", textureRSpair:" << textureSTpair[tris[3 * i+1]] << endl;
-		cout << "vertice ID: " << tris[3 * i+2] << ", vertice:" << verts[tris[3 * i+2]] << ", textureRSpair:" << textureSTpair[tris[3 * i+2]] << endl;
-	}
-
 }
 
 void TMesh::SetToCube(V3 cc, float sideLength, unsigned int color0, unsigned int color1) {
@@ -51,8 +27,6 @@ void TMesh::SetToCube(V3 cc, float sideLength, unsigned int color0, unsigned int
 	vertsN = 8;
 	trisN = 6 * 2;
 	Allocate(vertsN, trisN);
-
-
 
 	for (int vi = 0; vi < 4; vi++) {
 		colors[vi].SetFromColor(color0);
@@ -142,65 +116,8 @@ void TMesh::DrawCubeQuadFaces(FrameBuffer *fb, PPC *ppc, unsigned int color) {
 
 }
 
-void TMesh::DrawPlanerRect(V3 cc, float sideLength, unsigned int color) {
-
-	vertsN = 4;
-	trisN = 2;
-	Allocate(vertsN, trisN);
-
-
-	int vi = 0;
-	verts[vi] = cc + V3(-sideLength / 2.0f, +sideLength / 2.0f, 0);
-	vi++;
-	verts[vi] = cc + V3(-sideLength / 2.0f, -sideLength / 2.0f,0);
-	vi++;
-	verts[vi] = cc + V3(+sideLength / 2.0f, -sideLength / 2.0f, 0);
-	vi++;
-	verts[vi] = cc + V3(+sideLength / 2.0f, +sideLength / 2.0f,0);
-	vi++;
-
-
-	int tri = 0;
-	tris[3 * tri + 0] = 0;
-	tris[3 * tri + 1] = 1;
-	tris[3 * tri + 2] = 2;
-	tri++;
-	tris[3 * tri + 0] = 2;
-	tris[3 * tri + 1] = 3;
-	tris[3 * tri + 2] = 0;
-	tri++;
-
-	for (int vi = 0; vi < 4; vi++) {
-		colors[vi].SetFromColor(color);		
-	}
-
-	V3 v01 = verts[0] - verts[1];
-	V3 v03 = verts[0] - verts[2];
-
-	V3 normal = v01 ^ v03.Normalized();
-
-	normal=normal.Normalized();
-	for (int vi = 0; vi < 4; vi++) {
-		normals[vi]=normal;
-	}
-
-}
-
-void TMesh::DrawPlanerRectUpdateNormal() {
-
-	V3 v01 = verts[0] - verts[1];
-	V3 v03 = verts[0] - verts[2];
-
-	V3 normal = v01 ^ v03.Normalized();
-
-	normal = normal.Normalized();
-	for (int vi = 0; vi < 4; vi++) {
-		normals[vi] = normal;
-	}
-}
-
 void TMesh::DrawWireFrame(FrameBuffer *fb, PPC *ppc, unsigned int color) {
-	//trisN = 2; //temp just to check one face of the cube for hw3 other wise delte this line.
+
 	for (int tri = 0; tri < trisN; tri++) {
 		V3 V0 = verts[tris[3 * tri + 0]];
 		V3 V1 = verts[tris[3 * tri + 1]];
@@ -303,139 +220,6 @@ void TMesh::Translate(V3 tv) {
 
 }
 
-void TMesh::Distort(int axis) {
-	int mul = 10;
-	for (int vi = 0; vi < vertsN; vi++) 
-	{
-		float dist =verts[vi][axis]-GetCenter()[axis] ;
-		float diff = 1 / (dist*dist+10);
-		if (axis==1)
-		{
-			if (dist > 0)
-			{
-				verts[vi] = verts[vi] + V3(0, mul * diff, 0);
-			}
-			else {
-				verts[vi] = verts[vi] + V3(0,-1* mul * diff, 0);
-			}
-		}
-		if (axis == 0)
-		{
-			if (dist > 0)
-			{
-				verts[vi] = verts[vi] + V3(mul * diff, 0, 0);
-			}
-			else {				
-					verts[vi] = verts[vi] + V3(-1*mul * diff, 0, 0);				
-			}
-		}
-			
-		
-		if (axis == 2)			
-		{
-			float dist = verts[vi][axis]-GetCenter()[2];
-			float diff = 1 / (dist * dist+1);
-			if (dist>0) 
-			{
-				verts[vi] = verts[vi] + V3(0, 0, mul * diff);
-			}
-			else 
-			{
-				verts[vi] = verts[vi] + V3(0, 0, mul * diff);
-			}
-		
-		}
-		
-	}
-
-}
-
-void TMesh::DistortSinV2() {
-	int mul = 1;
-	for (int vi = 0; vi < vertsN; vi++)
-	{
-		float dist = (verts[vi] - GetCenter()).Length();
-		V3 dir = (verts[vi] - GetCenter()).Normalized();
-
-		int n1, n2;
-		n1 = 50000000;
-		n2 = 0.005;
-		float diff = 1000000 / (dist + n2);
-		diff = sin(n1*abs(diff));		  		 		
-		verts[vi] = verts[vi] + dir * diff*mul;
-				
-
-	}
-
-}
-
-void TMesh::DistortPoke() {
-	int mul = 1;
-	for (int vi = 0; vi < vertsN; vi++)
-	{
-		float dist = (verts[vi] - V3(0,0,-25)).Length();		
-		int n1, n2;
-		n1 = 50000;
-		n2 = 5;
-		float diff = 50 / (dist*dist + n2);		
-		verts[vi] = verts[vi] + V3( diff * mul, diff * mul,0);
-
-
-	}
-
-}
-
-void TMesh::DistortSin(int axis) {
-	int mul = 1;
-	for (int vi = 0; vi < vertsN; vi++)
-	{
-		float dist = verts[vi][0] - GetCenter()[0];
-		float dist1 = verts[vi][1] - GetCenter()[1];
-		float dist2 = verts[vi][2] - GetCenter()[2];
-		int n1, n2;
-		n1 = 1000000;
-		n2 = 100;
-		float diff = 1 / (dist * dist + n2);
-		diff = sin(n1 * abs(diff));
-		float diff1 = 1 / (dist1 * dist1 + n2);
-		diff1 = sin(n1 * abs(diff1));
-		float diff2 = 1 / (dist2 * dist2 + n2);
-		diff2 = sin(n1 * abs(diff2));
-
-
-		if (dist > 0)
-		{
-			verts[vi] = verts[vi] + V3(mul * diff, 0, 0);
-		}
-		else {
-			verts[vi] = verts[vi] + V3(-1 * mul * diff, 0, 0);
-		}
-
-		if (dist1 > 0)
-		{
-			verts[vi] = verts[vi] + V3(0, mul * diff, 0);
-		}
-		else {
-			verts[vi] = verts[vi] + V3(0, -1 * mul * diff, 0);
-		}
-
-		if (dist2 > 0)
-		{
-			verts[vi] = verts[vi] + V3(0, 0, mul * diff);
-		}
-		else {
-			verts[vi] = verts[vi] + V3(0, 0, -1 * mul * diff);
-		}
-
-
-
-
-
-	}
-
-}
-
-
 void TMesh::SetCenter(V3 center) {
 
 	V3 currCenter = GetCenter();
@@ -453,16 +237,13 @@ void TMesh::Rotate(V3 aO, V3 aDir, float theta) {
 
 }
 
-
-void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc) {
+void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc, V3 C, V3 L, float ka) {
 
 	V3 *pverts = new V3[vertsN];
 	for (int vi = 0; vi < vertsN; vi++) {
 		if (!ppc->Project(verts[vi], pverts[vi]))
 			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
 	}
-
-	//trisN = 2; //temp just to check one face of the cube for hw3 other wise delte this line.
 
 	for (int tri = 0; tri < trisN; tri++) {
 		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2]};
@@ -477,7 +258,7 @@ void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc) {
 		aabb.AddPoint(pverts[vinds[1]]);
 		aabb.AddPoint(pverts[vinds[2]]);
 		// clipping
-		 if (!aabb.clipwithframe(fb->w, fb->h))
+		if (!aabb.ClipWithFrame(fb->w, fb->h))
 			continue;
 		
 		int left = (int)(aabb.corners[0][0] + .5f);
@@ -487,6 +268,13 @@ void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc) {
 
 		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
 		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
+		M33 msimQ;
+		msimQ.SetColumn(0, verts[vinds[0]] - ppc->C);
+		msimQ.SetColumn(1, verts[vinds[1]] - ppc->C);
+		msimQ.SetColumn(2, verts[vinds[2]] - ppc->C);
+		msimQ = msimQ.Inverted()*ppc->CameraMatrix();
+		V3 msiDen = msimQ[0] + msimQ[1] + msimQ[2];
+
 		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
 		V3 zLE = ssim * zv;
 		M33 cm;
@@ -497,16 +285,61 @@ void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc) {
 		cLEm[0] = ssim * cm[0];
 		cLEm[1] = ssim * cm[1];
 		cLEm[2] = ssim * cm[2];
+		M33 msiRGB;
+		msiRGB[0] = msimQ.Transposed()*cm[0];
+		msiRGB[1] = msimQ.Transposed()*cm[1];
+		msiRGB[2] = msimQ.Transposed()*cm[2];
+		V3 msiZ = msimQ.Transposed()*zv;
+
+		M33 nm;
+		nm.SetColumn(0, normals[vinds[0]]);
+		nm.SetColumn(1, normals[vinds[1]]);
+		nm.SetColumn(2, normals[vinds[2]]);
+		M33 nLEm;
+		nLEm[0] = ssim * nm[0];
+		nLEm[1] = ssim * nm[1];
+		nLEm[2] = ssim * nm[2];
+
+
 		for (int v = top; v <= bottom; v++) {
 			for (int u = left; u <= right; u++) {
 				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
 				V3 sid = eeqsm * currPix;
 				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
 					continue; // outside of triangle
-				float currz = zLE * currPix;
+				float currz = zLE * currPix; // correct SSI of 1/w
+				float currMsiD = msiDen * currPix;
+
+//				currz = msiZ * currPix / currMsiD; // incorrect MSI of 1/w
+
 				if (fb->Farther(u, v, currz))
 					continue; // hidden
-				V3 currColor = cLEm*currPix;
+
+				V3 currColor = cLEm*currPix; // screen space interpolation
+				if (msiFlag) {
+					currColor = (msiRGB*currPix) / currMsiD; // model space interpolation
+					if (texture) {
+						float s = currColor[0];
+						float t = currColor[1];
+						int tu = (int)(s*(float)texture->w);
+						int tv = (int)(t*(float)texture->h);
+						currColor.SetFromColor(texture->Get(tu, tv));
+					}
+				}
+				fb->Set(u, v, currColor.GetColor());
+				continue;
+
+				// lighting
+				// normal at current pixel
+				V3 currNormal = nLEm*currPix;
+				V3 nv = currNormal.Normalized();
+
+				// 3D surface point at current pixel
+				V3 currP = ppc->UnProject(V3(currPix[0], currPix[1], currz));
+
+				// light vector
+				V3 lv = (L - currP).Normalized();
+				currColor = C.Light(lv, nv, ka);
 				fb->Set(u, v, currColor.GetColor());
 			}
 		}
@@ -516,1011 +349,6 @@ void TMesh::RenderFilled(FrameBuffer *fb, PPC *ppc) {
 	delete []pverts;
 
 }
-
-void TMesh::RenderFilledonBB(FrameBuffer* fb, PPC* ppc) {  //this fb->pix is the billboard, it will be copied to the tmesh callilng it. Camera is 
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	//trisN = 2; //temp just to check one face of the cube for hw3 other wise delte this line.
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-		M33 cm;
-		cm.SetColumn(0, colors[vinds[0]]);
-		cm.SetColumn(1, colors[vinds[1]]);
-		cm.SetColumn(2, colors[vinds[2]]);
-		M33 cLEm;
-		cLEm[0] = ssim * cm[0];
-		cLEm[1] = ssim * cm[1];
-		cLEm[2] = ssim * cm[2];
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				if (fb->Farther(u, v, currz))
-					continue; // hidden
-				V3 currColor = cLEm * currPix;
-				fb->Set(u, v, currColor.GetColor());
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-
-
-
-
-void TMesh::RenderFilled(FrameBuffer* fb, PPC* ppc, V3 C, V3 L, float ka) {
-
-	//int trisN = 1;
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		 if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-		M33 cm;
-		cm.SetColumn(0, colors[vinds[0]]);
-		cm.SetColumn(1, colors[vinds[1]]);
-		cm.SetColumn(2, colors[vinds[2]]);
-		M33 cLEm;
-		cLEm[0] = ssim * cm[0];
-		cLEm[1] = ssim * cm[1];
-		cLEm[2] = ssim * cm[2];
-
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				if (fb->Farther(u, v, currz))
-				{
-					cout << "further z" << endl;
-					continue; // hidden
-				}
-				V3 currColor = cLEm * currPix;
-
-				// normal at current pixel
-				V3 currNormal = nLEm * currPix;
-				V3 nv = currNormal.Normalized();
-
-				// 3D surface point at current pixel
-				V3 currP = ppc->UnProject(V3(currPix[0], currPix[1], currz));
-
-				// light vector
-				V3 lv = (L - currP).Normalized();
-				currColor = C.Light(lv, nv, ka);
-				//fb->Set(u, v, currColor.GetColor());
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-
-void TMesh::RenderShadowZmap(FrameBuffer* fb, PPC* LightSrcAsPPC, float* zbx)
-{
-	//int trisN = 1;
-
-
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!LightSrcAsPPC->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		 if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-
-		for (int v = top; v <= bottom; v++) 
-		{
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				//cout << currz << endl;
-				if (fb->FartherLightZ(zbx, u, v, currz))					
-					continue; // hidden
-				
-				//float colz = abs(currz)/10;
-				//V3 currColor = V3(colz, 0, 0);
-				//fb->Set(u, v, currColor.GetColor());
-				
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-void TMesh::DetectBlocker4mProjector(FrameBuffer* pfb, FrameBuffer* vfb, PPC* projectorPPC,PPC* viewerPPC)
-{
-	//int trisN = 1;
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!projectorPPC->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(pfb->w, pfb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-
-		M33 cm;
-		cm.SetColumn(0, colors[vinds[0]]);
-		cm.SetColumn(1, colors[vinds[1]]);
-		cm.SetColumn(2, colors[vinds[2]]);
-		M33 cLEm;
-		cLEm[0] = ssim * cm[0];
-		cLEm[1] = ssim * cm[1];
-		cLEm[2] = ssim * cm[2];
-
-
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-
-		for (int v = top; v <= bottom; v++)
-		{
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				//cout << currz << endl;
-				currPix[2] = currz;
-				if (pfb->Farther(u, v, currz))
-					continue; // hidden
-				V3 currColor = cLEm * currPix;
-				
-				if (currColor[0] > 0.9 && currColor[1]==0) {
-					V3 scenePointer(0, 0, 0);
-					scenePointer = projectorPPC->UnProject(currPix);
-					V3 pointBack2Viewer(0, 0, 0);
-					viewerPPC->Project(scenePointer, pointBack2Viewer);
-					unsigned int unblockedColor=vfb->Get(pointBack2Viewer[0],pointBack2Viewer[1],vfb->pix1);
-					vfb->Set(pointBack2Viewer[0],pointBack2Viewer[1], unblockedColor);
-					pfb->Set(u, v, unblockedColor);
-					continue;
-				}
-				//pfb->Set(u, v, currColor.GetColor());
-
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-void TMesh::RenderFilledEnv(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
-
-#if 0
-	project three vertices of the triangle camera plane
-		check boundary
-#endif
-
-		V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-		
-		
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				
-				if (fb->Farther(u, v, currz))
-				{
-					continue;
-				}				
-
-				// normal at current pixel
-				V3 currNormal = nLEm * currPix;
-				V3 currP = V3(u, v, currz);
-				V3 unprojectCurrP=ppc->UnProject(currP);
-				V3 inRay = unprojectCurrP- ppc->C;
-				V3 reflectedRay = inRay.reflection(currNormal);
-
-				unsigned int colorenv = cm->envmap4mRay(reflectedRay);
-
-				fb->Set(u, v,colorenv);
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-void TMesh::RenderFilledEnvRefrac(FrameBuffer* fb, PPC* ppc, cubemap* cm) {
-
-#if 0
-	project three vertices of the triangle camera plane
-		check boundary
-#endif
-
-		V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-
-
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-
-				if (fb->Farther(u, v, currz))
-				{
-					continue;
-				}
-
-				// normal at current pixel
-				V3 currNormal = nLEm * currPix;
-				V3 currP = V3(u, v, currz);
-				V3 unprojectCurrP = ppc->UnProject(currP);
-				V3 inRay = unprojectCurrP - ppc->C;
-				V3 reflectedRay = inRay.reflection(currNormal);
-				V3 refractedRay = inRay.refraction(1.1, 1.0, currNormal);
-
-				unsigned int colorenv1 = cm->envmap4mRay(reflectedRay);
-				unsigned int colorenv2 = cm->envmap4mRay(refractedRay);
-
-				V3 c1;
-				c1.SetFromColor(colorenv1);
-				V3 c2;
-				c2.SetFromColor(colorenv2);
-				V3 c = c1*0.0 + c2*1.0;
-				unsigned int colorenv=c.GetColor();
-				
-
-				fb->Set(u, v, colorenv);
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-void TMesh::RenderFilledBB(FrameBuffer* fb, PPC* ppc, TMesh* billboard, texture* t1) {
-
-#if 0
-	project three vertices of the triangle camera plane
-		check boundary
-#endif
-
-		V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-
-		//V3 texS(textureSTpair[vinds[0]][0], textureSTpair[vinds[1]][0], textureSTpair[vinds[2]][0]);
-		//V3 texT(textureSTpair[vinds[0]][1], textureSTpair[vinds[1]][1], textureSTpair[vinds[2]][1]);
-
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-
-				if (fb->Farther(u, v, currz))
-				{
-					continue;
-				}
-
-				// normal at current pixel
-				V3 currNormal = nLEm * currPix;
-				V3 currP = V3(u, v, currz);
-				V3 unprojectCurrP = ppc->UnProject(currP);
-				V3 inRay = unprojectCurrP - ppc->C;
-				V3 reflectedRay = inRay.reflection(currNormal);
-				unsigned int colorenv;
-				V3 uvw(0, 0, 0);
-				if (billboard->map4mRay(reflectedRay, unprojectCurrP,uvw, t1,colorenv)) {
-					//float currS = (uvw.xyz[2] * textureSTpair[vinds[0]][0] + uvw.xyz[0] * textureSTpair[vinds[1]][0] + uvw.xyz[1] * textureSTpair[vinds[2]][0]) * t1->w;
-					//float currT = (uvw.xyz[2] * textureSTpair[vinds[0]][1] + uvw.xyz[0] * textureSTpair[vinds[1]][1] + uvw.xyz[1] * textureSTpair[vinds[2]][1]) * t1->h;
-
-					//colorenv = 0;
-					V3 colorVec(0, 0, 0);
-					colorVec.SetFromColor(colorenv);
-					//cout << colorVec << endl;
-					if (colorVec[0] < 0.10 && colorVec[1] < 0.10 && colorVec[2] < 0.10)
-						continue;
-					fb->Set(u, v, colorenv);
-				}		
-
-				
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-
-
-int TMesh::map4mRay(V3 dir, V3 currP, V3& uvw, texture* t1, unsigned int &color)
-{
-	int ret = 0;
-	for (int tri = 0; tri < trisN; tri++) 	{
-		
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-
-		V3 orig = currP;
-		V3 v0 = verts[vinds[0]];
-		V3 v1 = verts[vinds[1]];
-		V3 v2 = verts[vinds[2]];
-		//cout << trisN << endl;
-		//cout << v0 << v1 << v2 << endl;
-
-			// compute plane's normal
-		V3 v0v1 = v1 - v0;
-		V3 v0v2 = v2 - v0;
-		// no need to normalize
-		V3 N = v0v1^(v0v2).Normalized(); // N 
-		N = N ;
-		//cout << "N "<<tri<<N << endl;
-		//cout << dir << endl;
-		// Step 1: finding P
-
-		// check if ray and plane are parallel ?
-		float NdotRayDirection = N*dir;
-		//cout << "Nparallel:" << NdotRayDirection << endl;
-		if (fabs(NdotRayDirection) < 0.001) // almost 0 
-			continue; // they are parallel so they don't intersect ! 
-
-		// compute d parameter using equation 2
-		float d = N*v0;
-
-		// compute t (equation 3)
-		float t = ((N*orig) + d) / NdotRayDirection;
-		//cout << "t" << t << endl;
-		// check if the triangle is in behind the ray
-		if (t < 0) 
-			continue; // the triangle is behind 
-
-		// compute the intersection point using equation 1
-		V3 P = orig + dir*t;
-
-		//cout << "p" <<P<< endl;
-		// Step 2: inside-outside test
-		V3 C; // vector perpendicular to triangle's plane 
-		
-		
-		//cout << uvw << endl;
-		// edge 0
-		V3 edge0 = v1 - v0;
-		V3 vp0 = P - v0;
-		C = edge0^vp0;
-		if (N*C < 0) 
-			continue; // P is on the right side 
-
-		// edge 1
-		V3 edge1 = v2 - v1;
-		V3 vp1 = P - v1;
-		C = edge1^vp1;
-		if (N*C < 0) 
-			continue; // P is on the right side 
-
-		// edge 2
-		V3 edge2 = v0 - v2;
-		V3 vp2 = P - v2;
-		C = edge2^(vp2);
-		if (N*(C) < 0) 
-			continue; // P is on the right side; 
-		
-		GetBarryCentric(v0, v1, v2, P, uvw);
-		if ((uvw[0] >= 0 && uvw[1] >= 0 && uvw[2] >= 0)|| (uvw[0] <= 0 && uvw[1] <= 0 && uvw[2]<=0))
-		{
-			ret = 1;
-			int currS = (uvw.xyz[2] * textureSTpair[vinds[0]][0] + uvw.xyz[0] * textureSTpair[vinds[1]][0] + uvw.xyz[1] * textureSTpair[vinds[2]][0]) * t1->w;
-			int currT = (uvw.xyz[2] * textureSTpair[vinds[0]][1] + uvw.xyz[0] * textureSTpair[vinds[1]][1] + uvw.xyz[1] * textureSTpair[vinds[2]][1]) * t1->h;
-
-			//V3 temp = v0 * uvw[2] + v1 * uvw[0] + v2 * uvw[1];
-			int colorI = t1->getPixelIndex(currS, currT);
-			color = t1->pix[colorI];
-		}
-	}
-	
-	//V3 temp=v0
-	return ret;
-
-}
-
-void TMesh::RenderFilledWithShadow(FrameBuffer* fb, PPC* ppc, float* zbx, PPC* LightPPC, V3 C, V3 L, float ka) {
-	
-#if 0
-	project three vertices of the triangle camera plane
-		check boundary
-#endif
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		 if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-		M33 cm;
-		cm.SetColumn(0, colors[vinds[0]]);
-		cm.SetColumn(1, colors[vinds[1]]);
-		cm.SetColumn(2, colors[vinds[2]]);
-		M33 cLEm;
-		cLEm[0] = ssim * cm[0];
-		cLEm[1] = ssim * cm[1];
-		cLEm[2] = ssim * cm[2];
-
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-		
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;	
-
-				V3 unprojectedP=LightPPC->UnProject(V3(u, v, currz));
-				
-				V3 lighFrameP(0, 0, 0);
-				LightPPC->Project(unprojectedP, lighFrameP);
-				
-				
-				if (fb->FartherLightZCompare(zbx,lighFrameP[0], lighFrameP[1],lighFrameP[2] ))
-				{
-
-					V3 currColor = cLEm * currPix;					
-					
-					currColor = C * ka;
-					fb->Set(u, v, currColor.GetColor());
-					
-					continue; 
-				}
-
-				if (fb->Farther(u, v, currz))
-				{
-					continue; 
-				}
-
-
-				V3 currColor = cLEm * currPix;
-
-				// normal at current pixel
-				V3 currNormal = nLEm * currPix;
-				V3 nv = currNormal.Normalized();
-				
-				// 3D surface point at current pixel
-				V3 currP = ppc->UnProject(V3(currPix[0], currPix[1], currz));
-			
-				// light vector
-				V3 lv = (L - currP).Normalized();
-				//cout << "nv lv" << nv << " " << lv << endl;
-				currColor = C.Light(lv, nv, ka);
-				fb->Set(u, v, currColor.GetColor());
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-void TMesh::RenderFilledProjector(FrameBuffer* fb0, FrameBuffer* fb1, PPC* ppc0, PPC* ppc1) {
-
-#if 0
-	first determine ppc1 projections from tmesh points
-#endif
-
-	V3* pverts = new V3[vertsN];
-	V3* pverts2 = new V3[vertsN];
-
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc1->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-
-		if (!ppc0->Project(verts[vi], pverts2[vi]))
-			pverts2[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(fb1->w, fb1->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-
-		M33 cm;
-		cm.SetColumn(0, colors[vinds[0]]);
-		cm.SetColumn(1, colors[vinds[1]]);
-		cm.SetColumn(2, colors[vinds[2]]);
-		M33 cLEm;
-		cLEm[0] = ssim * cm[0];
-		cLEm[1] = ssim * cm[1];
-		cLEm[2] = ssim * cm[2];
-
-#if 0
-		run through ppc1 frame on each triangle AABB
-#endif
-
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				
-#if 1
-				if (fb1->Farther(u, v, currz))
-				{
-					continue;
-				}
-#endif
-
-#if 0
-				we found the outputImage point. Now project it back to the object to get the scene point. 
-					Once we get the scene point, and compare with the z buffer to check whether it is visible from the output frame at ppc1.
-					Then, project it to the projector ppc0 and compare with z buffer to check visiblity from the projector. 
-					if not visible take the value from scenePoint and update the color at fb1 at u,v- scene color here is done by taking ssim of there vertex color of the triangle
-						if they are beyond the frame w and h (ref pverts2) take the value from scenePointand update the color at fb1 at u, v - scene color here is done by taking ssim of there vertex color of the triangle
-						if visible get the color at projector pix at fb0->pix at cordinate projectorFramePoint[0] and projectorFramePoint[1]. 
-#endif
-				V3 outputImagePoint = V3(u, v, currz);
-				V3 scenePoint = ppc1->UnProject(outputImagePoint);
-
-				if (
-					pverts2[vinds[0]][0] == FLT_MAX ||
-					pverts2[vinds[1]][0] == FLT_MAX ||
-					pverts2[vinds[2]][0] == FLT_MAX
-					) 
-				{
-					V3 currColor = cLEm * currPix;
-					//fb1->Set(u, v, currColor.GetColor());
-
-					continue;
-				}
-
-				V3 projectorFramePoint(0, 0, 0);
-				ppc0->Project(scenePoint, projectorFramePoint);		
-
-			
-#if 1
-				if (fb0->FartherLightZCompare(fb0->zbL1, projectorFramePoint[0], projectorFramePoint[1], projectorFramePoint[2]))
-				{
-
-					V3 currColor = cLEm * currPix;					
-					//fb1->Set(u, v, currColor.GetColor());
-					continue;
-				}		
-#endif
-
-
-
-				unsigned int projectorColor = fb0->Get((int)projectorFramePoint[0], (int)projectorFramePoint[1]);	
-#if 1
-				//implement transplant pixel 
-				V3 color;
-				color.SetFromColor(projectorColor);
-				if (color[0] < 0.5)
-				{
-					continue;
-				}
-								
-#endif	
-
-				fb1->Set(u, v, projectorColor);
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
-
-
-void TMesh::RenderFilledLight(FrameBuffer* fb, PPC* ppc, V3 C, V3 L, float ka) {
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	//trisN = 2; //temp just to check one face of the cube for hw3 other wise delte this line.
-
-	for (int tri = 0; tri < trisN; tri++) {
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		 if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-		M33 cm;
-		cm.SetColumn(0, colors[vinds[0]]);
-		cm.SetColumn(1, colors[vinds[1]]);
-		cm.SetColumn(2, colors[vinds[2]]);
-		M33 cLEm;
-		cLEm[0] = ssim * cm[0];
-		cLEm[1] = ssim * cm[1];
-		cLEm[2] = ssim * cm[2];
-
-
-		M33 nm;
-		nm.SetColumn(0, normals[vinds[0]]);
-		nm.SetColumn(1, normals[vinds[1]]);
-		nm.SetColumn(2, normals[vinds[2]]);
-		M33 nLEm;
-		nLEm[0] = ssim * nm[0];
-		nLEm[1] = ssim * nm[1];
-		nLEm[2] = ssim * nm[2];
-
-
-
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-				if (fb->Farther(u, v, currz))
-					continue; // hidden
-				V3 currColor = cLEm * currPix;
-
-
-
-				// normal at current pixel
-				V3 currNormal = nLEm * currPix;
-				V3 nv = currNormal.Normalized();
-
-				// 3D surface point at current pixel
-				V3 currP = ppc->UnProject(V3(currPix[0], currPix[1], currz));
-
-				// light vector
-				V3 lv = (L - currP).Normalized();
-				currColor = C.Light(lv, nv, ka);			
-
-				fb->Set(u, v, currColor.GetColor());
-			}
-		}
-
-	}
-
-	delete[]pverts;
-
-}
-
 
 V3 TMesh::SetEEQ(V3 v0, V3 v1, V3 v2) {
 
@@ -1578,282 +406,6 @@ M33 TMesh::SetSSIM(V3 pv0, V3 pv1, V3 pv2) {
 	return ret.Inverted();
 
 }
-#if 0
-model space works with unprojected original vertices of the model
-#endif
-
-M33 TMesh::SetMSIM(V3 V1, V3 V2, V3 V3, PPC* ppc) {
-
-	M33 ret;
-	ret[0] = V1-  ppc->C;
-	ret[1] = V2 - ppc->C;
-	ret[2] = V3 - ppc->C;
-	ret = ret.Transposed();
-	return ret.Inverted();
-
-
-
-}
-
-void TMesh::MapTextureCorners2TriangleVerts(int tri, int whichHalf) {
-	//whichHalf 0-->left/up side  1 for right/down side triangle
-	//Z VALUE DOES NOT MATTER
-	unsigned int vin[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-	
-	if (whichHalf == 0)
-	{
-		textureSTpair[vin[0]] = V3(0*tileM, 0*tileN, 1);
-		textureSTpair[vin[1]] = V3(0*tileM, 1*tileN, 1);
-		textureSTpair[vin[2]] = V3(1*tileM, 1*tileN, 1);
-	}
-	else {
-	
-		textureSTpair[vin[0]] = V3(1*tileM, 1*tileN, 1);
-		textureSTpair[vin[1]] = V3(1*tileM, 0*tileN, 1);
-		textureSTpair[vin[2]] = V3(0*tileM, 0*tileN, 1);
-	
-	}
-}
-
-
-
-void TMesh::RenderTexture(FrameBuffer* fb, PPC* ppc, texture* t1) {
-
-	V3* pverts = new V3[vertsN];
-	for (int vi = 0; vi < vertsN; vi++) {
-		if (!ppc->Project(verts[vi], pverts[vi]))
-			pverts[vi] = V3(FLT_MAX, FLT_MAX, FLT_MAX);
-	}
-
-	trisN = 2; //temp just to check one face of the cube for hw3 other wise delte this line.
-
-	for (int tri = 0; tri < trisN; tri++)
-	{
-		unsigned int vinds[3] = { tris[3 * tri + 0], tris[3 * tri + 1], tris[3 * tri + 2] };
-		if (
-			pverts[vinds[0]][0] == FLT_MAX ||
-			pverts[vinds[1]][0] == FLT_MAX ||
-			pverts[vinds[2]][0] == FLT_MAX
-			)
-			continue;
-
-		AABB aabb(pverts[vinds[0]]);
-		aabb.AddPoint(pverts[vinds[1]]);
-		aabb.AddPoint(pverts[vinds[2]]);
-		// clipping
-		if (!aabb.clipwithframe(fb->w, fb->h))
-			continue;
-
-		int left = (int)(aabb.corners[0][0] + .5f);
-		int right = (int)(aabb.corners[1][0] - .5f);
-		int top = (int)(aabb.corners[0][1] + .5f);
-		int bottom = (int)(aabb.corners[1][1] - .5f);
-
-		M33 eeqsm = SetEEQs(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-		M33 ssim = SetSSIM(pverts[vinds[0]], pverts[vinds[1]], pverts[vinds[2]]);
-
-
-		V3 zv(pverts[vinds[0]][2], pverts[vinds[1]][2], pverts[vinds[2]][2]);
-		V3 zLE = ssim * zv;
-
-
-		V3 texS(textureSTpair[vinds[0]][0], textureSTpair[vinds[1]][0], textureSTpair[vinds[2]][0]);
-		V3 texT(textureSTpair[vinds[0]][1], textureSTpair[vinds[1]][1], textureSTpair[vinds[2]][1]);
-		V3 sLE = ssim * texS;
-		V3 tLE = ssim * texT;
-#if 0
-		cout << verts[vinds[0]] << verts[vinds[1]] << verts[vinds[2]] << endl;
-		cout << "texS and texT:" << endl;
-		cout << texS << texT << endl;
-		cout << "sLE and tLE" << endl;
-		cout << sLE << tLE << endl;
-		cout << top << " " << bottom << " " << left << " " << right << endl;
-#endif
-		for (int v = top; v <= bottom; v++) {
-			for (int u = left; u <= right; u++) {
-				V3 currPix(.5f + (float)u, .5f + (float)v, 1.0f);
-				V3 sid = eeqsm * currPix;
-				if (sid[0] < 0.0f || sid[1] < 0.0f || sid[2] < 0.0f)
-					continue; // outside of triangle
-				float currz = zLE * currPix;
-
-#if 1
-				currPix[2] = currz;
-				V3 UcurrPix = ppc->UnProject(currPix);
-				V3 uvw(0, 0, 0);
-				GetBarryCentric(verts[vinds[0]], verts[vinds[1]], verts[vinds[2]], UcurrPix, uvw);
-				float currS = (uvw.xyz[2] * textureSTpair[vinds[0]][0] + uvw.xyz[0] * textureSTpair[vinds[1]][0] + uvw.xyz[1] * textureSTpair[vinds[2]][0]) * t1->w;
-				float currT = (uvw.xyz[2] * textureSTpair[vinds[0]][1] + uvw.xyz[0] * textureSTpair[vinds[1]][1] + uvw.xyz[1] * textureSTpair[vinds[2]][1]) * t1->h;
-
-#endif
-
-#if 0
-				cout << "unprojected curr pix and barrycentric uvw:" << endl;
-				cout << UcurrPix << endl;
-				cout << uvw << endl;
-				cout << verts[vinds[0]] << endl;
-				cout << verts[vinds[1]] << endl;
-				cout << verts[vinds[2]] << endl;
-				cout << "texS" << textureSTpair[vinds[0]][0] << " " << textureSTpair[vinds[1]][0] << " " << textureSTpair[vinds[2]][0] << endl;
-				cout << "texT" << textureSTpair[vinds[0]][1] << " " << textureSTpair[vinds[1]][1] << " " << textureSTpair[vinds[2]][1] << endl;
-				cout << "j, i, T, s:" << v << "," << u << "," << currT << "," << currS << endl;
-				cout << pixIJ << endl;
-#endif
-
-#if 0
-				int currS = sLE * currPix * t1->w;
-				int currT = tLE * currPix * t1->h;
-				//cout << "j, i, T, s:" << v << "," << u << "," << currT << "," << currS << endl;
-				int pixIJ = currS + currT * t1->w;
-				//cout << pixIJ << endl;
-#endif
-
-#if 0
-				//use this two lines to check weather interpolation works or not based on the colors of the vertices
-				V3 color = V3(uvw[2], 0, 0);
-				unsigned int color_uvw = color.GetColor();
-
-#endif
-				//unsigned int color_uvw = bilinearinterpolation(t1, currS, currT);
-				unsigned int color_uvw = NonBilinearReginterpolation(t1, currS, currT);
-				if (fb->Farther(u, v, currz))
-					continue; // hidden
-
-				fb->Set(u, v, color_uvw);
-			}
-		}
-
-	}
-
-	delete[]pverts;
-}
-
-
-float TMesh::CalcArea(V3 p1, V3 p2, V3 p3)
-{
-	float area = ((p1.xyz[0] * (p2.xyz[1] - p3.xyz[1]) + p2.xyz[0] * (p3.xyz[1] - p1.xyz[1]) + p3.xyz[0] * (p1.xyz[1] - p2.xyz[1])) / 2.0f);
-	return area;
-}
-
-/*
-c
- \
-|		w	\
-	\			\
-  u	 D *		-	-	b
-|				/
-	/	v	/
-|		/
-a
- some point P=ua+vb+wc
-*/
-
-/*
-Gives barrycentric co-ordinates of a point p with respect to a triangle with point a,b and c
-Refer to the graph above for understanding u,v and w
-calculates area of the whole triangle and sub triangles formed by the point and two triangle points and find ratios
-returns
-barycentric parameters u,b,w
-0<u,v,w<1 for the point within the triangle. 0 means on the line.
-*/
-
-void TMesh::GetBarryCentric(V3 a, V3 b, V3 c, V3 p, V3& uvw)
-{
-	float area_abc = CalcArea(a, b, c) + 0.01f;
-	float area_cap = CalcArea(c, a, p);
-	float area_abp = CalcArea(a, b, p);
-	float area_bcp = CalcArea(b, c, p);
-
-	uvw.xyz[0] = area_cap / area_abc;
-	uvw.xyz[1] = area_abp / area_abc;
-	uvw.xyz[2] = area_bcp / area_abc;
-
-}
-unsigned int TMesh::NonBilinearReginterpolation(texture* t1, float uf, float vf)
-{
-	int pixIJ = t1->getPixelIndex(uf, vf);
-	if (pixIJ >= t1->w * t1->w)
-	{
-		pixIJ = t1->w * t1->w - 1;
-		cout << "****************Warning: pixel beyond texture******************" << endl;
-	}
-	if (pixIJ < 0)
-	{
-		pixIJ = 0;
-		cout << "****************Warning: pixel beyond texture******************" << endl;
-	}
-	return t1->pix[pixIJ];
-	
-
-}
-
-unsigned int TMesh::bilinearinterpolation(FrameBuffer* t1, float uf, float vf)
-{
-	V3 colorBilinear;
-
-	if (vf < (t1->h - 1.5) && vf> 0.5 && uf > 0.5 && uf < (t1->w - 1.5))
-	{
-		float u0 = (uf - 0.5f);
-		float v0 = (vf - 0.5f);
-		int u0f = floor(u0);
-		int v0f = floor(v0);
-
-		float dx = u0 - u0f;
-		float dy = v0 - v0f;
-
-		V3 c0, c1, c2, c3;
-		int i0, i1, i2, i3;
-		float a0, a1, a2, a3;
-
-		i0 = t1->getPixelIndex(u0f, v0f);
-		i1 = t1->getPixelIndex(u0f + 1, v0f);
-		i2 = t1->getPixelIndex(u0f + 1, v0f + 1);
-		i3 = t1->getPixelIndex(u0f, v0f + 1);
-		//cout << "u0f, v0f, i0, i1, i2, i3:" << u0f<<" " << v0f<<" " << i0 <<" "<< i1 <<" "<<i2<<" "<<i3<< endl;
-		c0.SetFromColor(t1->pix[i0]);
-		c1.SetFromColor(t1->pix[i1]);
-		c2.SetFromColor(t1->pix[i2]);
-		c3.SetFromColor(t1->pix[i3]);
-		//cout << c0<<" " << c1<<" " << c2<<" " << c3 << endl;
-		
-		a0 = (1 - dx) * (1 - dy);
-		a1 = dx * (1 - dy);
-		a2 = dx * dy;
-		a3 = (1 - dx) * dy;
-		//a0 = a1 = a2 = a3 = 1;
-		//cout << a0 << " " << a1<<"  "<<a2<<" "<<a3<<endl;
-		for (int i = 0; i < 3; i++)
-		{
-			colorBilinear[i] = (a0 * c0[i] + a2 * c2[i] + a1 * c1[i] + a3 * c3[i]);
-
-		}
-
-		return colorBilinear.GetColor();
-
-	}
-	else 
-	{
-		int pixIJ = t1->getPixelIndex(uf, vf);
-		if (pixIJ >= t1->w * t1->w)
-		{
-			pixIJ = t1->w * t1->w - 1;
-			cout << "****************Warning: pixel beyond texture******************" <<uf<<" "<<vf <<endl;
-		}
-		if (pixIJ < 0)
-		{
-			pixIJ = 0;
-			cout << "****************Warning: pixel beyond texture******************" << uf << " " << vf << endl;
-		}
-		return t1->pix[pixIJ];
-
-	}
-	
-}
-
-void TMesh::setXYtileN(float m, float n) {
-	tileM = m;
-	tileN = n;
-}
 
 void TMesh::Light(V3 C, V3 L, float ka) {
 
@@ -1865,21 +417,395 @@ void TMesh::Light(V3 C, V3 L, float ka) {
 
 }
 
+void TMesh::SetQuad(V3 *qverts, V3 *qcolors) {
 
-void TMesh::scale(int m)
-{
-	cout << "Error: scale function does not works" << endl;
+	Allocate(4, 2);
+	V3 normal = ((qverts[1] - qverts[0]) ^ (qverts[2] - qverts[0])).Normalized();
+	for (int vi = 0; vi < 4; vi++) {
+		verts[vi] = qverts[vi];
+		colors[vi] = qcolors[vi];
+		normals[vi] = normal;
+	}
+
+
+	tris[0] = 0;
+	tris[1] = 1;
+	tris[2] = 2;
+	tris[3] = 2;
+	tris[4] = 3;
+	tris[5] = 0;
+
+}
+
+
+void TMesh::RayTrace(FrameBuffer *fb, PPC *ppc) {
+
+	for (int v = 0; v < fb->h; v++) {
+		for (int u = 0; u < fb->w; u++) {
+			V3 dir = ppc->a*(.5f + (float)u) + ppc->b*(.5f + (float)v) + ppc->c;
+			dir = dir.Normalized();
+			V3 O = ppc->C;
+			for (int tri = 0; tri < trisN; tri++) {
+				V3 v0 = verts[tris[3 * tri + 0]];
+				V3 v1 = verts[tris[3 * tri + 1]];
+				V3 v2 = verts[tris[3 * tri + 2]];
+				V3 barycc;
+				float t;
+				if (!IntersectTriangleWithRay(v0, v1, v2, O, dir, t, barycc))
+					continue;
+				if (fb->Farther(u, v, 1.0f / t))
+					continue;
+				M33 triColorM;
+				triColorM.SetColumn(0, colors[tris[3 * tri + 0]]);
+				triColorM.SetColumn(1, colors[tris[3 * tri + 1]]);
+				triColorM.SetColumn(2, colors[tris[3 * tri + 2]]);
+				V3 intColor = triColorM*barycc;
+				fb->Set(u, v, intColor.GetColor());
+			}
+		}
+		fb->redraw();
+		Fl::check();
+	}
+}
+
+int TMesh::IntersectTriangleWithRay(V3 v0, V3 v1, V3 v2, V3 O, V3 dir, float &t, 
+	V3 &barycc) {
+
+	M33 tM;
+	tM.SetColumn(0, v0);
+	tM.SetColumn(1, v1);
+	tM.SetColumn(2, v2);
+	tM = tM.Inverted();
+	V3 q = tM*O;
+	V3 r = tM*dir;
+	cout << "tM0"<<tM[0] << tM[1] << tM[2] << endl;
+	cout << "dir o" << dir <<O<< endl;
+	cout << "q" << q << endl;
+	cout << "R" << r << endl;
+	t = (1.0f - (q[0] + q[1] + q[2])) / (r[0] + r[1] + r[2]);
+	if (t < 0.0f)
+		return 0;
+	barycc = q + r*t;
+	cout << "T" << t << endl;
+	cout << "barycc:" << barycc << endl;
+	if (barycc[0] < 0.0f || barycc[1] < 0.0f || barycc[2] < 0.0f)
+		return 0;
+	return 1;
+
+}
+
+
+int TMesh::RayTrace(V3 rO, V3 rdir, V3 &rc, float &rz, V3 &rrO, V3 &rrdir) {
+
+	rz = 0.0f;
+	for (int tri = 0; tri < trisN; tri++) {
+		float currz;
+		V3 V0 = verts[tris[3 * tri + 0]];
+		V3 V1 = verts[tris[3 * tri + 1]];
+		V3 V2 = verts[tris[3 * tri + 2]];
+		V3 abc;
+		if (!RayTriangleIntersection(rO, rdir, V0, V1, V2, abc, currz))
+			continue;
+		if (currz > rz) {
+			rz = currz;
+			V3 c0 = colors[tris[3 * tri + 0]];
+			V3 c1 = colors[tris[3 * tri + 1]];
+			V3 c2 = colors[tris[3 * tri + 2]];
+			M33 cM;
+			cM.SetColumn(0, c0);
+			cM.SetColumn(1, c1);
+			cM.SetColumn(2, c2);
+			rc = cM*abc;
+			if (texture) {
+				int u = (int)(rc[0] * (float)texture->w);
+				int v = (int)(rc[1] * (float)texture->h);
+				rc.SetFromColor(texture->Get(u, v));
+			}
+			// for reflective meshes, compute reflected ray
+			if (reflectorFlag) {
+				M33 vM;
+				vM.SetColumn(0, V0);
+				vM.SetColumn(1, V1);
+				vM.SetColumn(2, V2);
+				rrO = vM*abc;
+				M33 nM;
+				nM.SetColumn(0, normals[tris[3 * tri + 0]]);
+				nM.SetColumn(1, normals[tris[3 * tri + 1]]);
+				nM.SetColumn(2, normals[tris[3 * tri + 2]]);
+				V3 currNormal = (nM*abc).Normalized();
+				rrdir = currNormal.Reflect(rdir);
+			}
+			else {
+				rrO[0] = FLT_MAX;
+			}
+		}
+	}
+
+	if (rz == 0.0f)
+		return 0;
+
+	return 1;
+
+}
+
+int TMesh::RayTriangleIntersection(V3 rO, V3 rdir, V3 V0, V3 V1, V3 V2,
+	V3 &abc, float &currz) {
+
+	M33 M;
+	M.SetColumn(0, V0);
+	M.SetColumn(1, V1);
+	M.SetColumn(2, V2);
+	M = M.Inverted();
+	V3 q = M*rO;
+	V3 r = M*rdir;
+	float t = (1 - (q[0] + q[1] + q[2])) / (r[0] + r[1] + r[2]);
+	if (t < 0.001f || t > 1e5f)
+		return 0;
+	abc = q + r*t;
+	if (abc[0] < 0.0f || abc[1] < 0.0f || abc[2] < 0.0f)
+		return 0;
+	currz = 1.0f / t;
+	return 1;
+
+}
+
+
+void TMesh::SetAABB(AABB &aabb) {
+
 	for (int vi = 0; vi < vertsN; vi++) {
-		cout <<"vi"<<vi<< verts[vi] << endl;
-		verts[vi] = verts[vi] * m;
-		cout << "vi" << vi << verts[vi] << endl;
+		aabb.AddPoint(verts[vi]);
 	}
 
 }
 
-void TMesh::BillboardProjection(FrameBuffer* fb, PPC* ppc) {
+void TMesh::Scale(float scf) {
 
-	RenderFilled(fb, ppc);
+	V3 c = GetCenter();
+	Translate(c*-1.0f);
 
+	for (int vi = 0; vi < vertsN; vi++)
+		verts[vi] = verts[vi] * scf;
+
+	Translate(c);
+
+}
+#if 0
+
+unsigned int TMesh::cubeTexture() {
+
+
+	GLuint textureID[2];
+
+	glGenTextures(2, textureID);	
+	//glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID[0]);
+
+	vector<std::string> faces =
+	{
+			"right_1.png",
+			"left_1.png",
+			"top_1.png",
+			"bottom_1.png",
+			"front_1.png",
+			"back_11.png"
+	};
+
+	int width, height, nrChannels;
+	unsigned char* data, *data1;
+
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data == nullptr) {
+			std::cerr << "Image reading failed." << std::endl;
+			return 0;
+		}
+		else if (nrChannels != 3 && nrChannels != 4) {
+			//std::cerr << "The loaded image doesn't have RGB color components." << std::endl;
+			//std::cerr << "The loaded image has " << nrChannels << " channels" << std::endl;
+			return 0;
+		}
+		else {
+			//std::cout << "The image loaded has size " << width << "x" << height << std::endl;
+		}
+
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+		);
+	}
+
+	//glEnable(GL_TEXTURE_CUBE_MAP);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, textureID[1]);
+
+	 faces =
+	{
+			"self.JPG",
+#if 0
+			"left.png",
+			"top.png",
+			"bottom.png",
+			"front.png",
+			"back.png"
+#endif
+	};
+
+	 glBindTexture(GL_TEXTURE_2D, textureID[1]);
+	
+	for (unsigned int i = 0; i < 1; i++)
+	{
+		data1 = stbi_load("self.JPG", &width, &height, &nrChannels, 0);
+		if (data1 == nullptr) {
+			std::cerr << "Image reading failed." << std::endl;
+			return 0;
+		}
+		else if (nrChannels != 3 && nrChannels != 4) {
+			//std::cerr << "The loaded image doesn't have RGB color components." << std::endl;
+			//std::cerr << "The loaded image has " << nrChannels << " channels" << std::endl;
+			return 0;
+		}
+		else {
+			//std::cout << "The image loaded has size " << width << "x" << height << std::endl;
+		}
+
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data1
+		);
+	}
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+#if 0
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 1);
+	
+#endif
+	return 0;
+}
+
+unsigned int TMesh::cubeTexture2() {
+
+	unsigned int textureID;
+	glGenTextures(2, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	vector<std::string> faces =
+	{
+			"right.png",
+			"left.png",
+			"top.png",
+			"bottom.png",
+			"front.png",
+			"back.png"
+};
+
+	int width, height, nrChannels;
+	unsigned char* data;
+
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data == nullptr) {
+			std::cerr << "Image reading failed." << std::endl;
+			return 0;
+		}
+		else if (nrChannels != 3 && nrChannels != 4) {
+			//std::cerr << "The loaded image doesn't have RGB color components." << std::endl;
+			//std::cerr << "The loaded image has " << nrChannels << " channels" << std::endl;
+			return 0;
+		}
+		else {
+			//std::cout << "The image loaded has size " << width << "x" << height << std::endl;
+		}
+
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+		);
+	}
+
+	return textureID;
+
+}
+
+#endif
+
+void TMesh::RenderHW() {
+	unsigned int nameTex,nameTex2;	
+#if 1
+	if (envReflec == 0)	{  // 1 for reflect, tpot
+		glDepthMask(GL_FALSE);		
+	}
+	else {
+		glDepthMask(GL_TRUE);
+	}
+	
+	glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+#endif
+	
+	//nameTex2=cubeTexture2();
+	//nameTex = cubeTexture();
+
+	//LoadResources();
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+
+	glVertexPointer(3, GL_FLOAT, 0, (float*)verts);
+	glColorPointer(3, GL_FLOAT, 0, (float*)colors);
+	glNormalPointer(GL_FLOAT, 0, (float*)normals);
+	glDrawElements(GL_TRIANGLES, 3 * trisN, GL_UNSIGNED_INT, tris);
+
+	
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, nameTex2);		
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, nameTex);
+		
+	
+	//glDisable(GL_TEXTURE_CUBE_MAP);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+#if 0
+	if (envReflec == 0) {		
+		glDepthMask(GL_TRUE);
+	}
+#endif
+}
+void TMesh::RenderHWBB() {
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+
+	glVertexPointer(3, GL_FLOAT, 0, (float*)verts);
+	glColorPointer(3, GL_FLOAT, 0, (float*)colors);
+	glNormalPointer(GL_FLOAT, 0, (float*)normals);
+	glDrawElements(GL_TRIANGLES, 3 * trisN, GL_UNSIGNED_INT, tris);
+
+
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 
 }

@@ -4,39 +4,43 @@
 #include "framebuffer.h"
 #include "ppc.h"
 #include "TMesh.h"
-#include "texture.h"
-#include "cubemap.h"
+#include "CGInterface.h"
 
 
 class Scene {
 public:
 
+	CGInterface * cgi;
+	ShaderOneInterface *soi;
+	int envReflec = 0; //0 not reflectionBackground
 	GUI *gui;
-	FrameBuffer *fb;
-	FrameBuffer* fbBB;
-	FrameBuffer* fb0, *fb1, *fb3, *fb4, *fbEnv;
-	PPC* ppc, *ppc0,*ppc1, *LightSrcPPC, * LightSrcPPC1, * LightSrcPPC2, * LightSrcPPC3;
-	PPC* ppcBB;
-	TMesh* tmeshes;
+	GLuint textureID[2];
+	FrameBuffer *fb, *fb3, *hwfb, *gpufb, *fbEnv,*fb0,*fb1;
+	PPC *ppc, *ppcBB,*ppc3,*gpuppc;
+	TMesh *tmeshes;
 	int tmeshesN;
-	int globalIndex4dbg = 0;
-	int globalIndex2 = 0;
-	texture *t1, *t2, *t3, *t4, *t5;
-	//int texesN;
-	float vf;
-	float hfov = 90.0f;
+	float qs;
+	int hwPerSessionInit;
 	Scene();
 	void DBG();
 	void NewButton();
-	void RenderERI2Conv();
-	void Rendercubemap();
-	void Renderenvmap();
-	void Render(FrameBuffer* rfb, PPC* rppc);
-	void Render(FrameBuffer* rfb, PPC* rppc, cubemap* cm);
-	void RenderProjector(FrameBuffer* fb0, FrameBuffer* fb1,PPC* ppc0, PPC* ppc1);
-//	void Render(FrameBuffer* fb, PPC* ppc,TMesh* tmesh);
-	V3 L,L1,L2,L3,f; // point light source
+	void Render();
+	void Render(FrameBuffer *rfb, PPC *rppc); // projection followed by rasterization
+	void RenderHW();
+	void RenderHWBB();
+	void RenderGPU();
+	void RenderRayTracing(FrameBuffer *rfb, PPC *rppc); // ray tracing
+	int RayTrace(V3 rO, V3 rdir, int rayOrder, V3& rc, float &currz);
+	float vf; // ppc visualization focal length
+	V3 L; // point light source
 	float ka; // ambient lighting coefficient
+	float p1; // test parameter for fragment shader
+	void PerSessionHWInit();
+
+
+	float morphFraction; // morphing parameters
+	void LoadResources();
+	V3 midpoint;
 };
 
 extern Scene *scene;
